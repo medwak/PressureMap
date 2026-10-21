@@ -1,0 +1,566 @@
+<title>Kenya Land Pressure Atlas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: survey-sheet atlas. Map plate on the left, decade notes on the right, decade-by-community matrix below. */
+:root {
+  --paper: #eef0ea;
+  --plate: #f8f9f5;
+  --land: #e2e6d8;
+  --land-edge: #8a927c;
+  --water: #b9d3dc;
+  --ink: #1f2620;
+  --ink-soft: #5a6357;
+  --rule: #cdd2c4;
+  --accent: #8a3b12;
+  --halo: #f8f9f5;
+  --display: "Zilla Slab", Rockwell, "Roboto Slab", Georgia, serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #141814; --plate: #1b201b; --land: #283026; --land-edge: #6f7a68;
+    --water: #23414c; --ink: #e6eadf; --ink-soft: #a3ad9d; --rule: #343c32;
+    --accent: #f0a46a; --halo: #1b201b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #141814; --plate: #1b201b; --land: #283026; --land-edge: #6f7a68;
+  --water: #23414c; --ink: #e6eadf; --ink-soft: #a3ad9d; --rule: #343c32;
+  --accent: #f0a46a; --halo: #1b201b; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink); font: 400 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(28px, 4.2vw, 44px); font-weight: 700; }
+h2 { font-size: 22px; font-weight: 700; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+header { display: grid; gap: 10px; }
+header p { margin: 0; max-width: 70ch; color: var(--ink-soft); }
+
+.controls { display: grid; gap: 12px; }
+.decades { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.decades button, .play {
+  font: 500 13px/1 var(--mono); padding: 9px 11px; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--plate); color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.decades button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.play { border-color: var(--accent); color: var(--accent); min-width: 84px; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px 5px 7px; border-radius: 999px;
+  border: 1px solid var(--rule); background: var(--plate); color: var(--ink); cursor: pointer; font: 600 13px/1 var(--body);
+}
+.chip i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+.chip[aria-pressed="false"] { opacity: .38; }
+.chip.reset { font-weight: 400; color: var(--ink-soft); }
+
+.stage { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 880px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+.plate { background: var(--plate); border: 1px solid var(--rule); border-radius: 6px; padding: 10px; min-width: 0; }
+.plate svg { width: 100%; height: auto; display: block; }
+.plate figcaption { font: 400 12px/1.4 var(--mono); color: var(--ink-soft); padding: 6px 4px 0; }
+
+.notes { display: grid; gap: 14px; min-width: 0; }
+.notes .period { font: 500 13px/1 var(--mono); color: var(--ink-soft); }
+.notes .summary { margin: 0; max-width: 62ch; }
+ol.moves { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.move { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 10px 12px; background: var(--plate); border: 1px solid var(--rule); border-radius: 6px; }
+.move.dim { opacity: .3; }
+.num { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font: 500 12px/1 var(--mono); color: #fff; }
+.move .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.move .who { font-weight: 700; }
+.tag { font: 500 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 4px 6px; border-radius: 3px; border: 1px solid var(--rule); color: var(--ink-soft); }
+.str { font: 400 12px/1 var(--mono); color: var(--ink-soft); }
+.move p { margin: 4px 0 0; font-size: 14px; }
+
+section.matrix { display: grid; gap: 10px; }
+section.matrix > p { margin: 0; color: var(--ink-soft); max-width: 70ch; }
+.scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--plate); }
+table { border-collapse: collapse; font-size: 13px; width: 100%; min-width: 860px; }
+th, td { border-bottom: 1px solid var(--rule); padding: 0; text-align: center; }
+thead th { font: 500 12px/1 var(--mono); padding: 10px 4px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+thead th.cur { color: var(--ink); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+tbody th { text-align: left; padding: 6px 10px; white-space: nowrap; font-weight: 600; }
+tbody th i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+td button { all: unset; display: block; width: 100%; padding: 7px 2px; cursor: pointer; font: 500 13px/1 var(--mono); color: var(--ink); }
+td button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+td.cur { box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent); }
+
+.key { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 400 12px/1.4 var(--mono); color: var(--ink-soft); }
+
+section.about { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+section.about div { min-width: 0; }
+section.about h3 { font-size: 17px; margin-bottom: 6px; }
+section.about p, section.about li { color: var(--ink-soft); font-size: 14px; max-width: 65ch; }
+section.about ul { padding-left: 18px; margin: 0; display: grid; gap: 4px; }
+
+svg text { font-family: var(--body); }
+.town { font: 400 9.5px var(--mono); fill: var(--ink-soft); }
+.core-label { font: 700 11.5px var(--body); paint-order: stroke; stroke: var(--halo); stroke-width: 3px; stroke-linejoin: round; }
+.badge-t { font: 500 9.5px var(--mono); fill: #fff; }
+.mv { transition: opacity .25s; }
+@media (prefers-reduced-motion: reduce) { .mv { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Kenya · 1900 to present · by decade</span>
+    <h1>Kenya Land Pressure Atlas</h1>
+    <p>Where Kenya's communities have pushed, been pushed, or been held in place, decade by decade since 1900. Each arrow summarises documented migration and settlement pressure for part of a community, with the main reason behind it. Inward rings mean pressure inside a home area (eviction back home, confinement, crowding); outward rings mean pressure in several directions at once.</p>
+  </header>
+
+  <div class="controls">
+    <div class="decades" id="decades" role="group" aria-label="Choose a decade"></div>
+    <div class="legend" id="legend" role="group" aria-label="Filter by community"></div>
+  </div>
+
+  <div class="stage">
+    <figure class="plate" style="margin:0">
+      <svg id="map" viewBox="0 0 546 624" role="img" aria-label="Map of Kenya with pressure arrows for the selected decade"></svg>
+      <figcaption>Schematic map. Community positions mark approximate home areas around 1900; arrow length and width show direction and relative strength, not exact routes.</figcaption>
+    </figure>
+    <div class="notes" aria-live="polite">
+      <span class="period" id="period"></span>
+      <h2 id="title"></h2>
+      <p class="summary" id="summary"></p>
+      <ol class="moves" id="moves"></ol>
+    </div>
+  </div>
+
+  <section class="matrix">
+    <h2>Main direction of pressure, every decade</h2>
+    <p>The strongest movement recorded for each community in each decade. Darker cells mean stronger pressure. Select a cell to open that decade on the map.</p>
+    <div class="key">
+      <span>↑ north</span><span>↓ south</span><span>→ east</span><span>← west</span><span>↗ ↘ ↙ ↖ diagonals</span><span>»« inward</span><span>«» outward</span><span>· no major shift recorded</span>
+    </div>
+    <div class="scroll"><table id="matrix"></table></div>
+  </section>
+
+  <section class="about">
+    <div>
+      <h3>How to read this</h3>
+      <ul>
+        <li>An arrow is a summary of what some families in a community did, not a claim about the whole community. Kenyans of every background have moved, bought land, been evicted and settled elsewhere.</li>
+        <li>Most pressure came from outside forces: colonial land alienation, state settlement schemes, the land market, population growth, drought and political violence.</li>
+        <li>Much of the post-1963 movement was lawful purchase or allocation. Many of the inward rings record people who lost land or were displaced.</li>
+        <li>Kalenjin sub-groups other than the Kipsigis and Pokot (Nandi, Keiyo, Marakwet, Tugen, Sabaot) are grouped under Nandi and other Kalenjin. Meru, Embu and Tharaka are grouped together, as are Borana and Gabra, and Orma and Pokomo.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Main sources</h3>
+      <ul>
+        <li>Kenya Land Commission (Carter) Report, 1934</li>
+        <li>Lotte Hughes, <em>Moving the Maasai: A Colonial Misadventure</em>, 2006</li>
+        <li>Tabitha Kanogo, <em>Squatters and the Roots of Mau Mau, 1905–63</em>, 1987</li>
+        <li>Kiliku Parliamentary Committee Report on ethnic clashes, 1992</li>
+        <li>Akiwumi Judicial Commission on tribal clashes, 1999</li>
+        <li>Ndung'u Commission on irregular allocation of public land, 2004</li>
+        <li>Waki Commission on post-election violence, 2008</li>
+        <li>Truth, Justice and Reconciliation Commission Report, 2013</li>
+        <li>Kenya National Bureau of Statistics, population censuses 1969–2019</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+// Communities: name, colour, approximate home-area centre [lon, lat] around 1900.
+const G = {
+  kikuyu:   { name: "Kikuyu",                 c: "#d9480f", at: [36.95, -0.72] },
+  maasai:   { name: "Maasai",                 c: "#c92a2a", at: [36.15, -1.95] },
+  kipsigis: { name: "Kipsigis",               c: "#2b8a3e", at: [35.3, -0.6], lab: [11, 15, "start"] },
+  nandi:    { name: "Nandi & other Kalenjin", c: "#74b816", at: [35.4, 0.2], lab: [12, 4, "start"], ringLab: [0, -40, "middle"] },
+  pokot:    { name: "Pokot",                  c: "#c9a227", at: [35.35, 1.55] },
+  turkana:  { name: "Turkana",                c: "#8d5524", at: [35.4, 3.6] },
+  samburu:  { name: "Samburu",                c: "#e64980", at: [37.05, 1.45] },
+  luo:      { name: "Luo",                    c: "#1c7ed6", at: [34.35, -0.45], lab: [-12, 4, "end"] },
+  luhya:    { name: "Luhya",                  c: "#15aabf", at: [34.6, 0.55], lab: [-12, 4, "end"], ringLab: [-36, 4, "end"] },
+  gusii:    { name: "Gusii (Kisii)",          c: "#ae3ec9", at: [34.75, -0.85] },
+  kamba:    { name: "Kamba",                  c: "#f59f00", at: [37.95, -1.45] },
+  meru:     { name: "Meru & Embu",            c: "#087f5b", at: [37.75, 0.02] },
+  mijikenda:{ name: "Mijikenda",              c: "#12b886", at: [39.5, -3.65] },
+  somali:   { name: "Somali",                 c: "#7048e8", at: [40.65, 1.35] },
+  borana:   { name: "Borana & Gabra",         c: "#868e96", at: [38.6, 2.85] },
+  orma:     { name: "Orma & Pokomo",          c: "#364fc7", at: [39.95, -1.7] },
+};
+
+// Decades. Each move: g = community, to = target [lon,lat] (from = optional start, default home area),
+// or t = "in" / "out" for pressure within or radiating from the home area. s = strength 1–3.
+const D = [
+ { d: 1900, title: "Railway, land alienation and the first Maasai Move",
+   sum: "The Uganda Railway reaches Kisumu (1901). The Crown Lands Ordinance (1902) lets the colonial state grant African land to European settlers, and the 1904 Maasai Agreement clears the central Rift Valley.",
+   m: [
+    { g: "maasai", from: [36.3, -0.55], to: [36.75, 0.35], s: 3, why: "1904 Maasai Agreement moves Maasai out of the central Rift (Naivasha, Nakuru) into a northern reserve on Laikipia." },
+    { g: "maasai", from: [36.3, -0.55], to: [36.2, -1.6], s: 2, why: "The rest are pushed south into the Southern Reserve (today's Kajiado and Narok)." },
+    { g: "kikuyu", to: [36.4, -0.5], s: 2, why: "Settler farms take land in southern Kiambu. Displaced families move west into the Rift Valley as squatter labour on the new European farms." },
+    { g: "nandi", t: "in", s: 2, why: "Nandi resistance ends after Koitalel arap Samoei is killed (1905). Land near the railway is taken and the Nandi are confined to a reserve." },
+    { g: "somali", from: [41.4, 2.2], to: [40.1, 0.6], s: 2, why: "Somali clans continue a 19th-century expansion south-west from the Juba toward the Lorian Swamp and Tana, displacing Borana and Orma grazing." },
+    { g: "luo", to: [34.4, -1.0], s: 1, why: "Continued settlement south of Winam Gulf into South Nyanza, pressing Gusii, Kuria and Suba borderlands." },
+    { g: "kamba", to: [38.6, -2.35], s: 1, why: "Recovery from the 1898–99 famine. Traders and herders spread south-east toward Tsavo and the coast hinterland." },
+ ]},
+ { d: 1910, title: "Second Maasai Move and the squatter system",
+   sum: "Laikipia is opened to settlers, the First World War takes tens of thousands of men into the Carrier Corps, and the 1918 Resident Native Labourers Ordinance ties squatters to settler farms.",
+   m: [
+    { g: "maasai", from: [36.75, 0.35], to: [35.95, -1.35], s: 3, why: "Second Maasai Move (1911–13): Laikipia Maasai are marched south to an enlarged Southern Reserve so Laikipia can be given to settlers." },
+    { g: "kikuyu", to: [36.15, -0.25], s: 3, why: "Squatter migration west to Rift Valley farms accelerates; the 1918 ordinance makes the squatter system official." },
+    { g: "kipsigis", to: [34.95, -0.85], s: 1, why: "Land around Kericho and Sotik is alienated for settlers; herds press west toward the Gusii and Luo borders." },
+    { g: "turkana", to: [35.45, 2.35], s: 2, why: "British punitive patrols (1915–18) and raiding with Pokot and Samburu; Turkana herds push south along the Kerio and Turkwel." },
+    { g: "somali", to: [39.95, 1.3], s: 1, why: "Colonial grazing lines are drawn to stop westward Somali movement, freezing contact with Borana around Wajir." },
+    { g: "luhya", to: [35.0, 1.05], s: 1, why: "Men leave as labour migrants for new settler farms in Trans Nzoia and for wartime service." },
+ ]},
+ { d: 1920, title: "Reserves are fenced in",
+   sum: "Kenya becomes a Crown Colony (1920). The kipande pass system controls movement, and native reserves are gazetted (1926), fixing ethnic boundaries and crowding the reserves.",
+   m: [
+    { g: "kikuyu", to: [36.75, -1.35], s: 2, why: "Crowding in Kiambu and Murang'a drives movement south toward Nairobi's labour market and the Maasai border near Ngong, often through trade and intermarriage." },
+    { g: "kikuyu", to: [36.15, -0.25], s: 2, why: "Squatter numbers on Rift Valley farms keep rising." },
+    { g: "kipsigis", to: [35.5, -0.95], s: 2, why: "Kericho tea estates (from 1924) take land; Kipsigis herds move south-east toward Bomet and the Maasai border." },
+    { g: "kamba", to: [38.45, -1.6], s: 2, why: "Soil erosion and overstocking in Machakos push families east into the Yatta plateau and Kitui lowlands." },
+    { g: "gusii", t: "in", s: 1, why: "Closed reserve boundaries end expansion; settlement in the Kisii highlands becomes dense." },
+    { g: "luo", to: [35.9, -0.6], s: 1, why: "Labour migration east to the railway, Nairobi and Mombasa." },
+    { g: "pokot", to: [35.9, 0.95], s: 1, why: "Pokot herders move south-east into the Baringo plains as grazing tightens." },
+ ]},
+ { d: 1930, title: "The Carter Commission confirms the White Highlands",
+   sum: "The Kenya Land Commission (1932–34) rejects most African claims to lost land. The Depression, the Kakamega gold rush and forced destocking add pressure.",
+   m: [
+    { g: "kikuyu", to: [35.9, -0.5], s: 3, why: "Rift Valley squatters reach well over 100,000 as Kikuyu claims to lost Kiambu land are largely rejected." },
+    { g: "luhya", to: [34.95, 0.95], s: 2, why: "The Kakamega gold rush (1931–32) takes reserve land; more families move north to work on Trans Nzoia farms." },
+    { g: "kamba", t: "in", s: 3, why: "Forced destocking (1938) under colonial soil-conservation policy. The Kamba march to Nairobi wins a partial reversal." },
+    { g: "pokot", to: [35.95, 0.85], s: 2, why: "Pokot expand into Baringo; the administration draws grazing boundaries with the Tugen and Il Chamus." },
+    { g: "somali", to: [39.6, 1.0], s: 1, why: "Grazing competition with Borana around Wajir and Isiolo despite administrative lines." },
+    { g: "turkana", to: [35.5, 2.4], s: 1, why: "Dry-season movement south toward Pokot grazing." },
+ ]},
+ { d: 1940, title: "Squatter evictions and Olenguruone",
+   sum: "The Second World War is followed by a wave of new settlers. Squatter contracts tighten, the Olenguruone settlement collapses, and the Makueni scheme opens new land for the Kamba.",
+   m: [
+    { g: "kikuyu", to: [35.7, -0.55], s: 2, why: "Olenguruone: Kikuyu are resettled on the Mau edge beside Kipsigis and Maasai land. Refusal of imposed farming rules ends in eviction (1949–50)." },
+    { g: "kikuyu", t: "in", s: 2, why: "Settlers cut squatter livestock and evict tenants; many return to crowded Central reserves or to Nairobi." },
+    { g: "kamba", to: [37.85, -2.1], s: 2, why: "Makueni settlement scheme (1946) clears tsetse land and moves Machakos families south." },
+    { g: "luo", to: [36.0, -0.75], s: 2, why: "Wartime and post-war jobs draw Luo workers east to Nairobi and Mombasa." },
+    { g: "luhya", to: [35.4, 0.1], s: 1, why: "Labour migration east to Rift Valley farms and Nairobi." },
+    { g: "kipsigis", to: [35.5, -0.85], s: 1, why: "Population growth pushes herders toward Bomet and the Mau." },
+ ]},
+ { d: 1950, title: "Emergency and the Swynnerton Plan",
+   sum: "The State of Emergency (1952–60) during the Mau Mau war removes Kikuyu, Embu and Meru people from the Rift Valley and Nairobi. The Swynnerton Plan (1954) consolidates land and issues title in Central Province.",
+   m: [
+    { g: "kikuyu", t: "in", s: 3, why: "Tens of thousands are repatriated from the Rift Valley and Nairobi (Operation Anvil, 1954), detained, or moved into guarded villages. Land consolidation creates a new landless class." },
+    { g: "meru", t: "in", s: 2, why: "Embu and Meru families face the same repatriation and villagisation." },
+    { g: "kipsigis", to: [35.7, -0.5], s: 2, why: "Swynnerton cash crops (tea, dairy) bring enclosure; landless households move up to the Mau forest edge." },
+    { g: "luo", to: [36.0, -0.8], s: 2, why: "Luo and Luhya workers fill Nairobi jobs left after Kikuyu removals." },
+    { g: "luhya", to: [34.95, 1.05], s: 2, why: "More labour settlement on Trans Nzoia and Uasin Gishu farms." },
+    { g: "gusii", to: [35.05, -0.7], s: 1, why: "Land consolidation and population growth push toward the Kipsigis border." },
+ ]},
+ { d: 1960, title: "Independence and the Million Acre Scheme",
+   sum: "Kenya becomes independent (1963). The Million Acre Scheme and land-buying companies move African farmers onto former settler land. The Shifta War (1963–67) hits the north-east.",
+   m: [
+    { g: "kikuyu", to: [35.85, -0.45], s: 3, why: "Settlement schemes and land-buying companies settle Kikuyu in Nyandarua and Nakuru, including Molo, Njoro and Kuresoi on the Kipsigis border." },
+    { g: "kikuyu", to: [36.75, 0.3], s: 2, why: "Former settler farms in Laikipia are bought and subdivided." },
+    { g: "nandi", to: [35.4, 0.6], s: 2, why: "Nandi, Keiyo and other Kalenjin settle former farms in Uasin Gishu around Eldoret." },
+    { g: "luhya", to: [35.0, 1.05], s: 2, why: "Luhya settle in Trans Nzoia and Bungoma settlement schemes." },
+    { g: "gusii", to: [35.05, -0.65], s: 2, why: "The Borabu settlement scheme opens former settler land east of Kisii." },
+    { g: "kipsigis", to: [35.35, -0.9], s: 2, why: "Settlement on former farms in Sotik and Chepalungu." },
+    { g: "somali", t: "in", s: 3, why: "Shifta War: secessionist conflict brings villagisation and security operations in the former Northern Frontier District." },
+    { g: "maasai", t: "in", s: 2, why: "The Land (Group Representatives) Act (1968) fixes Maasai grazing in titled group ranches." },
+ ]},
+ { d: 1970, title: "Land-buying companies and coast schemes",
+   sum: "Land-buying companies keep transferring Rift Valley farms. New schemes open coast land, and Maasai group ranches start to subdivide.",
+   m: [
+    { g: "kikuyu", to: [40.75, -2.35], s: 2, why: "The Mpeketoni settlement scheme in Lamu settles landless upcountry families, mostly Kikuyu, on the coast." },
+    { g: "kikuyu", to: [36.65, -1.65], s: 2, why: "Land purchases south into Kajiado and around Ngong on the Maasai side." },
+    { g: "kikuyu", to: [35.95, -0.25], s: 2, why: "Land-buying companies keep settling members in Nakuru and Nyandarua." },
+    { g: "kamba", to: [38.25, -2.85], s: 2, why: "Kamba farmers move south-east into the Makueni lowlands and the Tsavo and Taita margins." },
+    { g: "kipsigis", to: [35.6, -1.05], s: 2, why: "Kipsigis farmers lease and buy land east and south into Narok and the Mau." },
+    { g: "maasai", t: "in", s: 2, why: "Group ranches begin to subdivide; Narok grazing is leased for large-scale wheat farming." },
+    { g: "mijikenda", t: "in", s: 2, why: "Upcountry settlement and absentee titles on the coastal strip leave many Mijikenda as squatters on ancestral land." },
+ ]},
+ { d: 1980, title: "Population boom, drought and guns in the north",
+   sum: "Population grows at nearly 4% a year. The 1984 drought and the spread of automatic rifles in the north change pastoral conflict.",
+   m: [
+    { g: "kikuyu", to: [36.0, -1.25], s: 2, why: "Kikuyu farmers buy or lease plots in Narok (Enoosupukia, Mau Narok) and Kajiado." },
+    { g: "gusii", to: [35.1, -1.1], s: 2, why: "Kisii is among Kenya's densest rural areas; families buy land south-east in Narok and Transmara." },
+    { g: "kipsigis", to: [35.7, -0.6], s: 2, why: "Settlement continues on the Mau forest edge." },
+    { g: "turkana", to: [35.55, 1.95], s: 2, why: "The 1984 drought and modern rifles intensify Turkana–Pokot raiding over pasture and water." },
+    { g: "pokot", to: [35.4, 2.25], s: 2, why: "Pokot herds push north toward Turkwel and Kainuk, contested with the Turkana." },
+    { g: "somali", t: "in", s: 2, why: "Drought and security operations, including the Wagalla killings (1984), hold pressure inside the north-east." },
+    { g: "luhya", to: [35.0, 1.05], s: 1, why: "Continued land purchase in Trans Nzoia." },
+ ]},
+ { d: 1990, title: "Multiparty politics and the land clashes",
+   sum: "Multiparty politics returns (1991). Clashes in the Rift Valley, Western and the coast displace roughly 300,000 people (Kiliku 1992 and Akiwumi 1999 reports). Somalia's collapse sends refugees and herds south-west.",
+   m: [
+    { g: "kikuyu", t: "in", s: 3, why: "Clashes at Molo, Olenguruone, Burnt Forest and Enoosupukia (1993) drive Kikuyu settlers back toward Central and the towns." },
+    { g: "nandi", t: "out", s: 2, why: "Majimbo politics pushes to reclaim Rift Valley land from settler communities in Uasin Gishu, Nandi and Trans Nzoia." },
+    { g: "maasai", t: "out", s: 2, why: "Enoosupukia evictions (1993) and campaigns to recover Narok land from non-Maasai settlers." },
+    { g: "luhya", t: "in", s: 2, why: "Luhya settlers are displaced from Trans Nzoia and the Bungoma border." },
+    { g: "mijikenda", t: "out", s: 2, why: "Likoni clashes (1997) target upcountry residents at the coast amid grievances over coast land." },
+    { g: "somali", to: [39.3, 0.2], s: 2, why: "Somalia's collapse (1991) brings refugees; Somali herders move west and south into Isiolo and Tana River, clashing with Borana and Orma." },
+    { g: "kipsigis", to: [35.75, -0.55], s: 2, why: "Mau forest excisions open more forest land to settlement." },
+ ]},
+ { d: 2000, title: "Mau excisions and the post-election violence",
+   sum: "The 2001 Mau excisions settle thousands in the forest. The 2007–08 post-election violence kills about 1,100 people and displaces about 600,000 (Waki Commission).",
+   m: [
+    { g: "kikuyu", t: "in", s: 3, why: "Violence in Uasin Gishu, Nakuru and Kericho sends Kikuyu families to IDP camps and back to Central." },
+    { g: "nandi", t: "out", s: 2, why: "Violence in Uasin Gishu and Nandi revives claims to Rift Valley land. Operation Rudi Nyumbani (2008) later returns many IDPs." },
+    { g: "luo", t: "in", s: 2, why: "Reprisal violence in Naivasha and Nakuru sends Luo and Kalenjin residents back west." },
+    { g: "kipsigis", to: [35.8, -0.6], s: 2, why: "The 2001 Mau excisions settle mostly Kipsigis and Ogiek families deep in the forest." },
+    { g: "borana", t: "in", s: 2, why: "Borana–Gabra clashes over water and pasture, including the Turbi massacre (2005) in Marsabit." },
+    { g: "somali", to: [39.5, 0.4], s: 1, why: "Somali herders and traders keep expanding into Isiolo and Tana River." },
+    { g: "turkana", to: [35.5, 2.4], s: 1, why: "Turkana–Pokot raiding on the Kerio and Turkwel." },
+ ]},
+ { d: 2010, title: "Devolution, Mau evictions and Laikipia",
+   sum: "The 2010 Constitution and devolution (2013) make county identity matter. Mau evictions, the Tana Delta clashes (2012) and drought-driven herder incursions into Laikipia (2016–17) mark the decade.",
+   m: [
+    { g: "kipsigis", to: [35.25, -0.85], from: [35.8, -0.65], s: 2, why: "Evictions from the Maasai Mau (2018–19) push settlers back west toward Bomet." },
+    { g: "maasai", to: [35.85, -0.9], s: 1, why: "Maasai leaders press to recover the Maasai Mau and surrounding Narok land." },
+    { g: "samburu", to: [36.85, 0.3], s: 3, why: "Drought and politics bring Samburu herds south onto Laikipia ranches and conservancies (2016–17)." },
+    { g: "pokot", to: [36.2, 0.45], s: 2, why: "Pokot herds push south-east into Baringo and Laikipia." },
+    { g: "orma", t: "in", s: 2, why: "Tana Delta clashes (2012) between Orma herders and Pokomo farmers over land and water." },
+    { g: "kikuyu", to: [36.85, -1.6], s: 2, why: "Peri-urban growth: Nairobi buyers move south into Kajiado (Kitengela, Kiserian, Ngong)." },
+    { g: "turkana", t: "in", s: 1, why: "Oil discovery (2012) and county-boundary disputes with Pokot at Kainuk and Turkwel." },
+    { g: "somali", to: [38.2, 0.7], s: 1, why: "Somali urban and livestock-trade growth in Isiolo, Marsabit and Nairobi's Eastleigh." },
+ ]},
+ { d: 2020, title: "Drought and the Nairobi metro region",
+   sum: "The worst drought in 40 years (2020–23) drives herders south; Kerio Valley security operations follow (2023). Nairobi's metro region spreads into Kajiado, Machakos and Kiambu.",
+   m: [
+    { g: "samburu", to: [37.15, 0.35], s: 3, why: "Herds move south into Laikipia, Isiolo and Meru in search of pasture." },
+    { g: "pokot", to: [35.8, 0.55], s: 2, why: "Pokot herds push south into Baringo and Elgeyo-Marakwet; Kerio Valley banditry prompts security operations (2023)." },
+    { g: "turkana", to: [35.6, 2.1], s: 2, why: "Drought pushes Turkana herders south toward Pokot and Samburu grazing." },
+    { g: "borana", to: [38.1, 0.8], s: 2, why: "Borana herds move south toward Isiolo and Meru farmland." },
+    { g: "somali", to: [39.6, -0.6], s: 2, why: "Somali herders move south-west into Tana River and Garissa grazing during drought." },
+    { g: "meru", t: "in", s: 1, why: "Farmers in Meru and Isiolo border areas face herders entering farmland during drought." },
+    { g: "kikuyu", to: [36.9, -1.65], s: 2, why: "Continued buying in Kajiado and Machakos as Nairobi expands." },
+    { g: "maasai", t: "in", s: 2, why: "Land sales and fencing in Kajiado and Narok shrink open rangeland." },
+ ]},
+];
+
+// Projection: simple equirectangular, 60 px per degree.
+const P = ([lon, lat]) => [ (lon - 33.3) * 60, (5.4 - lat) * 60 ];
+const pts = a => a.map(p => P(p).map(v => v.toFixed(1)).join(",")).join(" ");
+
+const KENYA = [[34.0,4.22],[34.4,4.62],[35.3,5.0],[35.9,4.62],[36.85,4.45],[38.1,3.6],[39.05,3.52],[39.85,3.85],[40.77,4.26],[41.17,3.92],[41.9,3.98],[40.99,2.78],[41.0,-0.87],[41.56,-1.66],[41.2,-1.95],[40.9,-2.05],[40.6,-2.35],[40.2,-2.65],[40.12,-3.0],[39.85,-3.6],[39.65,-4.05],[39.4,-4.4],[39.2,-4.67],[37.75,-3.6],[37.65,-3.05],[34.0,-1.0],[33.92,-0.45],[33.95,0.1],[34.1,0.45],[34.4,0.85],[34.55,1.1],[34.8,1.25],[34.9,1.9],[35.0,2.6],[34.85,3.1],[34.4,3.7]];
+const TURKANA = [[35.95,4.5],[36.25,4.2],[36.35,3.6],[36.6,3.0],[36.7,2.45],[36.55,2.45],[36.3,3.0],[36.05,3.6],[35.85,4.2]];
+const VICTORIA = [[33.4,-1.15],[34.05,-0.98],[34.3,-0.85],[34.45,-0.5],[34.78,-0.32],[34.8,-0.12],[34.55,-0.17],[34.3,-0.1],[34.1,0.0],[34.05,0.2],[33.4,0.35]];
+const TOWNS = [["Nairobi",36.82,-1.29],["Mombasa",39.67,-4.04],["Kisumu",34.76,-0.1],["Nakuru",36.07,-0.3],["Eldoret",35.27,0.51],["Garissa",39.65,-0.45],["Lodwar",35.6,3.12],["Lamu",40.9,-2.27],["Isiolo",37.58,0.35],["Narok",35.87,-1.08],["Kericho",35.28,-0.37],["Marsabit",37.99,2.33],["Kitale",35.0,1.02],["Wajir",40.06,1.75],["Mandera",41.85,3.94]];
+
+const DIRS = ["East","North-east","North","North-west","West","South-west","South","South-east"];
+const GLYPH = { East:"→","North-east":"↗",North:"↑","North-west":"↖",West:"←","South-west":"↙",South:"↓","South-east":"↘",Inward:"»«",Outward:"«»" };
+function dirOf(m) {
+  if (m.t) return m.t === "in" ? "Inward" : "Outward";
+  const f = m.from || G[m.g].at;
+  const a = (Math.atan2(m.to[1] - f[1], m.to[0] - f[0]) * 180 / Math.PI + 360) % 360;
+  return DIRS[Math.round(a / 45) % 8];
+}
+
+const svgNS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const n = document.createElementNS(svgNS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+
+const state = { i: 0, focus: null, timer: null };
+const map = document.getElementById("map");
+
+function drawBase() {
+  const defs = el("defs", {}, map);
+  for (const k in G) {
+    const mk = el("marker", { id: "ah-" + k, viewBox: "0 0 10 10", refX: "7", refY: "5", markerWidth: "3.4", markerHeight: "3.4", orient: "auto-start-reverse" }, defs);
+    el("path", { d: "M0,0 L10,5 L0,10 z", fill: G[k].c }, mk);
+  }
+  el("polygon", { points: pts(KENYA), fill: "var(--land)", stroke: "var(--land-edge)", "stroke-width": "1.2", "stroke-linejoin": "round" }, map);
+  el("polygon", { points: pts(VICTORIA), fill: "var(--water)", opacity: ".9" }, map);
+  el("polygon", { points: pts(TURKANA), fill: "var(--water)" }, map);
+  // Indian Ocean label and equator
+  const eq = P([33.3, 0]);
+  el("line", { x1: 0, y1: eq[1], x2: 546, y2: eq[1], stroke: "var(--land-edge)", "stroke-dasharray": "2 4", "stroke-width": ".7", opacity: ".7" }, map);
+  const t = el("text", { x: 4, y: eq[1] - 4, class: "town" }, map); t.textContent = "Equator";
+  const o = el("text", { x: P([40.9,-3.6])[0], y: P([40.9,-3.6])[1], class: "town", "font-style": "italic" }, map); o.textContent = "Indian Ocean";
+  const lv = el("text", { x: P([33.35,-1.3])[0], y: P([33.35,-1.3])[1], class: "town", "font-style": "italic" }, map); lv.textContent = "L. Victoria";
+  const lt = el("text", { x: P([36.75,3.4])[0], y: P([36.75,3.4])[1], class: "town", "font-style": "italic" }, map); lt.textContent = "L. Turkana";
+  const mk = P([37.31,-0.15]);
+  el("path", { d: `M${mk[0]-5},${mk[1]+4} L${mk[0]},${mk[1]-5} L${mk[0]+5},${mk[1]+4} z`, fill: "var(--land-edge)" }, map);
+  for (const [n, lon, lat] of TOWNS) {
+    const [x, y] = P([lon, lat]);
+    el("circle", { cx: x, cy: y, r: 1.8, fill: "var(--ink-soft)" }, map);
+    const tx = el("text", { x: x + 4, y: y + 3, class: "town" }, map); tx.textContent = n;
+  }
+  // compass
+  const c = el("g", { transform: "translate(510,40)" }, map);
+  el("path", { d: "M0,-18 L5,0 L0,-4 L-5,0 z", fill: "var(--ink)" }, c);
+  const nt = el("text", { x: 0, y: -22, "text-anchor": "middle", class: "town" }, c); nt.textContent = "N";
+  el("g", { id: "cores" }, map);
+  el("g", { id: "arrows" }, map);
+  el("g", { id: "badges" }, map);
+}
+
+function curve(a, b) {
+  const [x0, y0] = P(a), [x2, y2] = P(b);
+  const mx = (x0 + x2) / 2, my = (y0 + y2) / 2, dx = x2 - x0, dy = y2 - y0;
+  const len = Math.hypot(dx, dy) || 1, k = 0.16;
+  const cx = mx - dy * k, cy = my + dx * k;
+  return { d: `M${x0.toFixed(1)},${y0.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`,
+           mid: [0.25 * x0 + 0.5 * cx + 0.25 * x2, 0.25 * y0 + 0.5 * cy + 0.25 * y2] };
+}
+
+function visible(g) { return !state.focus || state.focus.has(g); }
+
+function render() {
+  const dec = D[state.i];
+  const cores = map.querySelector("#cores"), arrows = map.querySelector("#arrows"), badges = map.querySelector("#badges");
+  cores.replaceChildren(); arrows.replaceChildren(); badges.replaceChildren();
+  const active = new Set(dec.m.map(m => m.g));
+
+  for (const k in G) {
+    const [x, y] = P(G[k].at);
+    const on = active.has(k), vis = visible(k);
+    const g = el("g", { class: "mv", opacity: vis ? (on ? 1 : 0.45) : 0.12 }, cores);
+    el("circle", { cx: x, cy: y, r: on ? 9 : 6, fill: G[k].c, "fill-opacity": on ? .3 : .18, stroke: G[k].c, "stroke-width": 1.4 }, g);
+    const ring = dec.m.find(m => m.g === k && m.t);
+    const [lx, ly, anc] = ring ? (G[k].ringLab || [0, 44, "middle"]) : (G[k].lab || [0, on ? 21 : 17, "middle"]);
+    const lb = el("text", { x: x + lx, y: y + ly, "text-anchor": anc, class: "core-label", fill: G[k].c }, g);
+    lb.textContent = G[k].name;
+  }
+
+  dec.m.forEach((m, idx) => {
+    const col = G[m.g].c, w = 1.5 + m.s * 1.4, vis = visible(m.g);
+    const grp = el("g", { class: "mv", opacity: vis ? 1 : 0.1 }, arrows);
+    let badgeAt;
+    if (m.to) {
+      const cv = curve(m.from || G[m.g].at, m.to);
+      el("path", { d: cv.d, fill: "none", stroke: "var(--halo)", "stroke-width": w + 3, "stroke-linecap": "round", opacity: .85 }, grp);
+      el("path", { d: cv.d, fill: "none", stroke: col, "stroke-width": w, "stroke-linecap": "round", "marker-end": `url(#ah-${m.g})` }, grp);
+      badgeAt = cv.mid;
+    } else {
+      const [x, y] = P(G[m.g].at), inward = m.t === "in";
+      const r1 = 13, r2 = 26 + m.s * 3;
+      for (const ang of [45, 135, 225, 315]) {
+        const rad = ang * Math.PI / 180, cs = Math.cos(rad), sn = Math.sin(rad);
+        const a = inward ? r2 : r1, b = inward ? r1 : r2;
+        const d = `M${(x + cs * a).toFixed(1)},${(y + sn * a).toFixed(1)} L${(x + cs * b).toFixed(1)},${(y + sn * b).toFixed(1)}`;
+        el("path", { d, stroke: "var(--halo)", "stroke-width": w + 3, "stroke-linecap": "round", opacity: .85 }, grp);
+        el("path", { d, stroke: col, "stroke-width": w, "stroke-linecap": "round", "marker-end": `url(#ah-${m.g})` }, grp);
+      }
+      el("circle", { cx: x, cy: y, r: (r1 + r2) / 2, fill: "none", stroke: col, "stroke-width": 1, "stroke-dasharray": "3 3", opacity: .7 }, grp);
+      badgeAt = [x + r2 * 0.95, y - r2 * 0.6];
+    }
+    const b = el("g", { class: "mv", opacity: vis ? 1 : 0.1 }, badges);
+    el("circle", { cx: badgeAt[0], cy: badgeAt[1], r: 7.5, fill: col, stroke: "var(--halo)", "stroke-width": 1.5 }, b);
+    const bt = el("text", { x: badgeAt[0], y: badgeAt[1] + 3.3, "text-anchor": "middle", class: "badge-t" }, b);
+    bt.textContent = idx + 1;
+  });
+
+  document.getElementById("period").textContent = `${dec.d}–${dec.d === 2020 ? "present" : dec.d + 9}`;
+  document.getElementById("title").textContent = dec.title;
+  document.getElementById("summary").textContent = dec.sum;
+  const list = document.getElementById("moves");
+  list.replaceChildren();
+  dec.m.forEach((m, idx) => {
+    const li = document.createElement("li");
+    li.className = "move" + (visible(m.g) ? "" : " dim");
+    const dir = dirOf(m);
+    li.innerHTML = `<span class="num" style="background:${G[m.g].c}">${idx + 1}</span>
+      <div><div class="head"><span class="who" style="color:${G[m.g].c}">${G[m.g].name}</span>
+      <span class="tag">${GLYPH[dir]} ${dir}</span>
+      <span class="str" title="Relative strength">${"●".repeat(m.s)}${"○".repeat(3 - m.s)}</span></div>
+      <p>${m.why}</p></div>`;
+    list.appendChild(li);
+  });
+
+  document.querySelectorAll("#decades button[data-i]").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.i === state.i)));
+  document.querySelectorAll("#matrix [data-col]").forEach(c => c.classList.toggle("cur", +c.dataset.col === state.i));
+  document.querySelectorAll("#legend .chip[data-g]").forEach(c => c.setAttribute("aria-pressed", String(visible(c.dataset.g))));
+  document.querySelectorAll("#matrix tbody tr").forEach(r => r.style.opacity = visible(r.dataset.g) ? 1 : .35);
+}
+
+function setDecade(i) {
+  state.i = i;
+  try { history.replaceState(null, "", "#" + D[i].d); } catch (e) {}
+  render();
+}
+
+function buildControls() {
+  const dc = document.getElementById("decades");
+  D.forEach((d, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.dataset.i = i; b.id = "dec-" + d.d;
+    b.textContent = d.d === 2020 ? "2020s" : d.d + "s";
+    b.addEventListener("click", () => { stop(); setDecade(i); });
+    dc.appendChild(b);
+  });
+  const play = document.createElement("button");
+  play.type = "button"; play.className = "play"; play.id = "play"; play.textContent = "▶ Play";
+  play.addEventListener("click", () => state.timer ? stop() : start());
+  dc.appendChild(play);
+
+  const lg = document.getElementById("legend");
+  const all = document.createElement("button");
+  all.type = "button"; all.className = "chip reset"; all.id = "show-all"; all.textContent = "Show all";
+  all.addEventListener("click", () => { state.focus = null; render(); });
+  lg.appendChild(all);
+  for (const k in G) {
+    const c = document.createElement("button");
+    c.type = "button"; c.className = "chip"; c.dataset.g = k; c.id = "chip-" + k;
+    c.innerHTML = `<i style="background:${G[k].c}"></i>${G[k].name}`;
+    c.addEventListener("click", () => {
+      if (!state.focus) state.focus = new Set([k]);
+      else if (state.focus.has(k)) { state.focus.delete(k); if (!state.focus.size) state.focus = null; }
+      else state.focus.add(k);
+      render();
+    });
+    lg.appendChild(c);
+  }
+}
+
+function buildMatrix() {
+  const t = document.getElementById("matrix");
+  let h = "<thead><tr><th scope='col' style='text-align:left;padding-left:10px'>Community</th>";
+  D.forEach((d, i) => h += `<th scope="col" data-col="${i}">${d.d === 2020 ? "2020s" : d.d + "s"}</th>`);
+  h += "</tr></thead><tbody>";
+  for (const k in G) {
+    h += `<tr data-g="${k}"><th scope="row"><i style="background:${G[k].c}"></i>${G[k].name}</th>`;
+    D.forEach((d, i) => {
+      const ms = d.m.filter(m => m.g === k);
+      if (!ms.length) { h += `<td data-col="${i}"><button type="button" data-i="${i}" style="color:var(--ink-soft)" aria-label="${G[k].name}, ${d.d}s: no major shift">·</button></td>`; return; }
+      const top = ms.reduce((a, b) => b.s > a.s ? b : a);
+      const dir = dirOf(top), pct = [0, 22, 40, 62][top.s];
+      const extra = ms.length > 1 ? ` <sup>+${ms.length - 1}</sup>` : "";
+      h += `<td data-col="${i}" style="background:color-mix(in srgb, ${G[k].c} ${pct}%, transparent)"><button type="button" data-i="${i}" title="${dir}: ${top.why.replace(/"/g, "&quot;")}" aria-label="${G[k].name}, ${d.d}s: ${dir}">${GLYPH[dir]}${extra}</button></td>`;
+    });
+    h += "</tr>";
+  }
+  t.innerHTML = h + "</tbody>";
+  t.addEventListener("click", e => {
+    const b = e.target.closest("button[data-i]");
+    if (!b) return;
+    stop(); setDecade(+b.dataset.i);
+    document.querySelector(".stage").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+function start() {
+  document.getElementById("play").textContent = "❚❚ Pause";
+  state.timer = setInterval(() => setDecade((state.i + 1) % D.length), 2600);
+}
+function stop() {
+  if (!state.timer) return;
+  clearInterval(state.timer); state.timer = null;
+  document.getElementById("play").textContent = "▶ Play";
+}
+
+drawBase();
+buildControls();
+buildMatrix();
+const fromHash = D.findIndex(d => "#" + d.d === location.hash);
+setDecade(fromHash >= 0 ? fromHash : 0);
+</script>
