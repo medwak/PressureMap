@@ -20,6 +20,11 @@
   --land-out: #eceee6;
   --river: #7fa9b8;
   --ok: #2b8a3e;
+  --relief: #8b6a3e;
+  --rift: #d6d0b8;
+  --forest: #7fa36b;
+  --desert: #d8c48f;
+  --riv: #3f7f9a;
   --warn: #b7791f;
   --bad: #c92a2a;
   --shadow: 0 1px 2px rgb(31 38 32 / .08), 0 4px 14px rgb(31 38 32 / .06);
@@ -31,14 +36,14 @@
   :root:not([data-theme="light"]) {
     --paper: #141814; --plate: #1b201b; --land: #283026; --land-edge: #6f7a68;
     --water: #23414c; --ink: #e6eadf; --ink-soft: #a3ad9d; --rule: #343c32;
-    --accent: #f0a46a; --on-accent: #1b201b; --halo: #1b201b; --sea: #18303a; --land-out: #1f241e; --river: #3d6b7b; --ok: #69db7c; --warn: #f2c14e; --bad: #ff8787;
+    --accent: #f0a46a; --on-accent: #1b201b; --halo: #1b201b; --sea: #18303a; --land-out: #1f241e; --river: #3d6b7b; --ok: #69db7c; --relief: #c9a678; --rift: #34322a; --forest: #4f7a45; --desert: #6b5d3a; --riv: #6fb3cf; --warn: #f2c14e; --bad: #ff8787;
     --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 4px 14px rgb(0 0 0 / .3); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --paper: #141814; --plate: #1b201b; --land: #283026; --land-edge: #6f7a68;
   --water: #23414c; --ink: #e6eadf; --ink-soft: #a3ad9d; --rule: #343c32;
-  --accent: #f0a46a; --on-accent: #1b201b; --halo: #1b201b; --sea: #18303a; --land-out: #1f241e; --river: #3d6b7b; --ok: #69db7c; --warn: #f2c14e; --bad: #ff8787;
+  --accent: #f0a46a; --on-accent: #1b201b; --halo: #1b201b; --sea: #18303a; --land-out: #1f241e; --river: #3d6b7b; --ok: #69db7c; --relief: #c9a678; --rift: #34322a; --forest: #4f7a45; --desert: #6b5d3a; --riv: #6fb3cf; --warn: #f2c14e; --bad: #ff8787;
   --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 4px 14px rgb(0 0 0 / .3); color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -186,6 +191,14 @@ svg text { font-family: var(--body); }
 .town { font: 400 9.5px var(--mono); fill: var(--ink-soft); }
 .core-label { font: 700 11.5px var(--body); paint-order: stroke; stroke: var(--halo); stroke-width: 3px; stroke-linejoin: round; }
 .badge-t { font: 500 9.5px var(--mono); fill: #fff; pointer-events: none; }
+.tlabel { font: italic 600 9.5px var(--body); fill: var(--relief); paint-order: stroke; stroke: var(--halo); stroke-width: 2.5px; }
+.rlabel { font: italic 500 8.5px var(--body); fill: var(--riv); paint-order: stroke; stroke: var(--halo); stroke-width: 2.5px; }
+.plabel { font: 500 8.5px var(--mono); fill: var(--relief); paint-order: stroke; stroke: var(--halo); stroke-width: 2.5px; }
+#terrain [data-n] { cursor: pointer; }
+#terrain [data-n].hl { filter: drop-shadow(0 0 2.5px var(--accent)) drop-shadow(0 0 1px var(--accent)); }
+#terrain.dimmed [data-n]:not(.hl) { opacity: .35; }
+.ntype { font: 500 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--relief); }
+.ncard { --sc: var(--relief); }
 .blabel { font: 700 10px var(--mono); paint-order: stroke; stroke: var(--halo); stroke-width: 3px; }
 .watermark { font: 700 54px var(--display); fill: var(--ink); opacity: .09; }
 .mv { transition: opacity .25s; }
@@ -232,6 +245,7 @@ svg text { font-family: var(--body); }
       <div class="map-tools" role="group" aria-label="Map view">
         <button type="button" id="view-all" aria-pressed="true">All Kenya</button>
         <button type="button" id="view-west" aria-pressed="false">Rift &amp; West</button>
+        <button type="button" id="toggle-terrain" aria-pressed="true">Terrain</button>
         <button type="button" id="toggle-bounds" aria-pressed="true">Conflict borders</button>
         <a id="earth-view" href="#" target="_blank" rel="noopener">Google Earth ↗</a>
       </div>
@@ -245,6 +259,13 @@ svg text { font-family: var(--body); }
       <ol class="moves" id="moves"></ol>
     </div>
   </div>
+
+  <section class="bounds" id="barriers">
+    <h2>Rivers, valleys and mountains</h2>
+    <p>The natural barriers and corridors that steered where communities could move. Rivers are blue lines, escarpments are toothed brown lines, ranges are brown ridges, peaks are triangles with heights, and shaded areas mark forest, desert and the Rift Valley floor.</p>
+    <div class="key" id="terrain-key"></div>
+    <div class="bcards" id="ncards"></div>
+  </section>
 
   <section class="bounds" id="borders">
     <h2>Conflict boundaries and how they were settled</h2>
@@ -512,6 +533,79 @@ const B = [
    years: "2000s–2020s", what: "A disputed county boundary between Meru farmers and Borana, Turkana and Somali herders (Kiwanja Ndege, Buuri, Ngaremara).",
    how: "Survey and mediation efforts by the national government. The boundary is still contested." },
 ];
+// Natural barriers. Geometry kinds: river (line), esc (escarpment line), range (ridge line), peak (point, h = metres),
+// area (ellipse: at, rx, ry in degrees; fill = desert | forest), lake (small ellipse). lab = label position [lon, lat].
+// Positions are approximate except the Tana, which is traced from Natural Earth.
+const N = [
+ { id: "rift", type: "Valley", name: "Great Rift Valley", g: ["maasai", "kikuyu", "kipsigis", "nandi", "samburu"],
+   parts: [{ k: "rift", pts: [[36.15,2.4],[35.95,1.9],[35.8,1.4],[35.75,0.9],[35.72,0.4],[35.68,-0.05],[35.78,-0.4],[35.92,-0.9],[36.0,-1.4],[36.02,-1.85],[35.95,-2.1],[36.3,-2.1],[36.42,-1.7],[36.55,-1.3],[36.6,-0.95],[36.55,-0.55],[36.42,-0.1],[36.38,0.5],[36.45,1.1],[36.55,1.7],[36.6,2.35]] },
+           { k: "esc", pts: [[35.72,0.4],[35.68,-0.05],[35.78,-0.4],[35.92,-0.9],[36.0,-1.4],[36.02,-1.85]] },
+           { k: "esc", pts: [[36.42,-1.7],[36.55,-1.3],[36.6,-0.95],[36.55,-0.55],[36.42,-0.1],[36.38,0.5],[36.45,1.1]] },
+           { k: "lake", at: [36.08,0.63], rx: .05, ry: .09 }, { k: "lake", at: [36.1,0.25], rx: .02, ry: .06 },
+           { k: "lake", at: [36.09,-0.36], rx: .03, ry: .05 }, { k: "lake", at: [36.35,-0.77], rx: .06, ry: .06 },
+           { k: "lake", at: [36.27,-1.88], rx: .03, ry: .08 }],
+   role: "The valley floor was Maasai and Samburu dry-season grazing, walled off from highland farmers by escarpments: Kikuyu to the east, Kalenjin and Gusii to the west. Colonial settlers took the floor and the highlands, and after 1963 land-buying companies settled farmers there, which is why so many of the arrows on this map cross it." },
+ { id: "mau", type: "Escarpment & forest", name: "Mau Escarpment & Mau Forest", g: ["kipsigis", "maasai"],
+   parts: [{ k: "area", fill: "forest", at: [35.72,-0.55], rx: .22, ry: .3 }, { k: "range", pts: [[35.6,-0.1],[35.7,-0.45],[35.75,-0.9]] }],
+   role: "Kenya's largest forest block and the old frontier between Kipsigis to the west and Maasai to the east; home of the Ogiek. The 1990s and 2001 excisions opened it to settlement, and the 2018–19 Maasai Mau evictions pushed settlers back west." },
+ { id: "aberdare", type: "Mountains", name: "Aberdare Range & Mt Kenya", g: ["kikuyu", "meru"],
+   parts: [{ k: "range", pts: [[36.65,-0.9],[36.72,-0.5],[36.68,-0.1]] }, { k: "area", fill: "forest", at: [36.7,-0.45], rx: .12, ry: .35 },
+           { k: "area", fill: "forest", at: [37.31,-0.15], rx: .3, ry: .28 },
+           { k: "peak", at: [37.31,-0.15], h: 5199, n: "Mt Kenya" }],
+   role: "The forest belt that bounds Kikuyu, Embu and Meru farmland and separates it from the Laikipia plateau and Samburu grazing. It was the base of the Land and Freedom Army (Mau Mau) in the 1950s, and its rivers feed the Tana and Ewaso Ng'iro." },
+ { id: "elgon", type: "Mountain", name: "Mt Elgon", g: ["nandi", "luhya"],
+   parts: [{ k: "area", fill: "forest", at: [34.6,1.05], rx: .2, ry: .2 }, { k: "peak", at: [34.55,1.12], h: 4321, n: "Mt Elgon" }],
+   role: "An extinct volcano on the Uganda border shared by the Sabaot, the Bukusu and Uganda's Bagisu. Land on its slopes in the Chebyuk scheme was the centre of the 2006–08 Sabaot conflict." },
+ { id: "kerio", type: "Valley", name: "Kerio Valley, Cherangani Hills & Elgeyo Escarpment", g: ["pokot", "nandi"],
+   parts: [{ k: "range", pts: [[35.3,0.95],[35.42,1.2],[35.5,1.45]] }, { k: "esc", pts: [[35.5,0.35],[35.55,0.75],[35.58,1.05]] },
+           { k: "river", pts: [[35.45,0.3],[35.6,0.8],[35.65,1.3],[35.8,1.95],[36.0,2.6],[36.1,3.0]], n: "" }],
+   role: "A deep valley between the Elgeyo escarpment and the Tugen Hills. Marakwet and Keiyo farm the escarpment, Pokot and Tugen graze the floor, and the valley is a long-running raiding corridor; security operations followed in 2023." },
+ { id: "suguta", type: "Valley", name: "Suguta Valley", g: ["turkana", "samburu", "pokot"],
+   parts: [{ k: "area", fill: "desert", at: [36.45,1.85], rx: .14, ry: .4 }],
+   role: "One of the hottest, most remote stretches of the Rift. It shelters raiders moving between Turkana, Samburu and Pokot grazing; 42 police officers were killed here near Baragoi in 2012." },
+ { id: "turkwel", type: "River", name: "Turkwel River", g: ["turkana", "pokot"],
+   parts: [{ k: "river", pts: [[34.75,1.15],[35.0,1.55],[35.35,1.92],[35.5,2.5],[35.62,3.1],[35.95,3.45]], n: "Turkwel" }],
+   role: "Rising on Mt Elgon as the Suam, it is the main dry-season water source for Turkana and Pokot herds. Its valley around Turkwel dam and Kainuk is part of the disputed Turkana–Pokot boundary." },
+ { id: "tana", type: "River", name: "Tana River", g: ["orma", "somali", "kamba", "kikuyu"],
+   parts: [{ k: "river", pts: [[36.704,-0.35],[36.772,-0.319],[36.812,-0.306],[36.851,-0.319],[36.907,-0.307],[36.964,-0.313],[36.985,-0.358],[36.999,-0.404],[37.039,-0.436],[37.05,-0.475],[37.083,-0.517],[37.121,-0.538],[37.147,-0.574],[37.162,-0.614],[37.185,-0.653],[37.226,-0.676],[37.25,-0.715],[37.258,-0.768],[37.292,-0.791],[37.292,-0.791],[37.335,-0.83],[37.386,-0.845],[37.432,-0.859],[37.49,-0.889],[37.536,-0.881],[37.573,-0.861],[37.62,-0.837],[37.663,-0.806],[37.74,-0.787],[37.785,-0.798],[37.811,-0.799],[37.867,-0.787],[37.902,-0.731],[37.901,-0.678],[37.911,-0.632],[37.888,-0.596],[37.892,-0.554],[37.92,-0.483],[37.964,-0.43],[37.984,-0.361],[37.986,-0.313],[38.013,-0.276],[38.094,-0.287],[38.133,-0.268],[38.163,-0.236],[38.184,-0.196],[38.21,-0.126],[38.252,-0.08],[38.314,-0.053],[38.355,-0.056],[38.391,-0.076],[38.434,-0.069],[38.496,-0.061],[38.546,-0.024],[38.632,-0.044],[38.686,-0.046],[38.746,-0.065],[38.934,-0.093],[38.968,-0.055],[39.026,-0.038],[39.069,-0.045],[39.143,-0.127],[39.228,-0.131],[39.285,-0.133],[39.331,-0.151],[39.372,-0.164],[39.43,-0.189],[39.472,-0.216],[39.501,-0.25],[39.523,-0.284],[39.561,-0.308],[39.594,-0.346],[39.633,-0.49],[39.663,-0.527],[39.695,-0.573],[39.736,-0.587],[39.774,-0.612],[39.811,-0.69],[39.821,-0.737],[39.828,-0.799],[39.834,-0.841],[39.862,-0.922],[39.875,-0.97],[39.887,-1.015],[39.923,-1.086],[39.917,-1.135],[39.956,-1.151],[39.971,-1.193],[40.005,-1.258],[40.01,-1.342],[40.027,-1.416],[40.033,-1.48],[40.084,-1.586],[40.113,-1.626],[40.115,-1.69],[40.116,-1.731],[40.115,-1.799],[40.125,-1.847],[40.137,-1.902],[40.137,-1.943],[40.15,-1.998],[40.168,-2.043],[40.177,-2.139],[40.164,-2.18],[40.177,-2.224],[40.127,-2.261],[40.146,-2.3],[40.136,-2.341],[40.168,-2.372],[40.198,-2.399],[40.197,-2.457],[40.233,-2.482],[40.303,-2.507],[40.344,-2.51],[40.389,-2.49],[40.433,-2.478],[40.476,-2.506],[40.513,-2.525]], n: "Tana" }],
+   role: "Kenya's longest river (about 1,000 km). Its floodplain is farmed by the Pokomo and grazed by Orma, Wardei and Somali herders in dry seasons, the root of the 2012 Tana Delta clashes. In the early 1900s the colonial administration used the Tana country as a limit on westward Somali grazing." },
+ { id: "ewaso", type: "River", name: "Ewaso Ng'iro (north)", g: ["samburu", "borana", "kikuyu"],
+   parts: [{ k: "river", pts: [[36.55,-0.25],[36.75,0.1],[36.95,0.4],[37.25,0.6],[37.68,0.65],[38.2,0.75],[38.8,0.62],[39.5,0.7]], n: "Ewaso Ng'iro" }],
+   role: "The dry-season lifeline of Laikipia, Samburu and Isiolo. When it runs low, herds move south toward Laikipia ranches and farms, as in 2016–17 and the 2020–23 drought; irrigation upstream has cut its flow." },
+ { id: "athi", type: "River", name: "Athi–Galana–Sabaki & Tsavo", g: ["kamba", "maasai", "mijikenda"],
+   parts: [{ k: "river", pts: [[36.9,-1.4],[37.15,-1.15],[37.35,-1.12],[37.7,-1.6],[38.1,-2.3],[38.47,-2.98],[39.0,-3.05],[39.6,-3.05],[40.13,-3.17]], n: "Athi / Galana" },
+           { k: "river", pts: [[37.72,-3.05],[38.1,-3.0],[38.47,-2.98]], n: "Tsavo" }],
+   role: "The Athi divided the Maasai plains to the west from Kamba country to the east. Downstream, the dry Tsavo nyika and tsetse slowed settlement toward the coast, and Tsavo National Park (1948) closed much of that land." },
+ { id: "mara", type: "River & hills", name: "Mara River, Loita Hills & Nguruman", g: ["maasai", "gusii", "kipsigis"],
+   parts: [{ k: "river", pts: [[35.6,-0.75],[35.4,-1.05],[35.2,-1.35],[35.0,-1.58]], n: "Mara" },
+           { k: "range", pts: [[35.72,-1.65],[35.8,-1.95]] }, { k: "range", pts: [[36.05,-1.7],[36.08,-2.0]] }],
+   role: "Southern Maasai rangeland. The Mara rises in the Mau and marks the Transmara country where Maasai meet Gusii, Kipsigis and Kuria; conservancies and the Maasai Mara reserve now limit where herds and farms can expand." },
+ { id: "nzoia", type: "Rivers & swamp", name: "Nzoia, Yala & Yala Swamp", g: ["luhya", "luo"],
+   parts: [{ k: "river", pts: [[35.3,1.0],[35.0,0.8],[34.75,0.55],[34.4,0.3],[34.08,0.05]], n: "Nzoia" },
+           { k: "river", pts: [[35.0,0.25],[34.6,0.1],[34.2,-0.02]], n: "Yala" }, { k: "area", fill: "swamp", at: [34.15,0.0], rx: .08, ry: .06 }],
+   role: "Rivers that run from Luhya highlands into Luo lowlands at Lake Victoria. The flood-prone Yala Swamp area has long marked the Luhya–Luo borderland." },
+ { id: "sondu", type: "Rivers", name: "Sondu–Miriu & Nyando", g: ["kipsigis", "luo", "nandi"],
+   parts: [{ k: "river", pts: [[35.45,-0.55],[35.1,-0.45],[34.9,-0.38],[34.75,-0.33]], n: "Sondu" },
+           { k: "river", pts: [[35.25,-0.1],[35.0,-0.17],[34.85,-0.25]], n: "Nyando" }],
+   role: "They drop from the Kipsigis and Nandi highlands to the Luo lowlands of Kano. The Sondu market and the Muhoroni sugar belt along these rivers are recurring flashpoints, and the Nyando floods the plains below." },
+ { id: "chalbi", type: "Desert & mountain", name: "Chalbi Desert & Mt Marsabit", g: ["borana", "samburu"],
+   parts: [{ k: "area", fill: "desert", at: [37.35,3.0], rx: .45, ry: .22 }, { k: "peak", at: [37.98,2.32], h: 1707, n: "Mt Marsabit" },
+           { k: "peak", at: [36.95,2.72], h: 2285, n: "Mt Kulal" }, { k: "peak", at: [36.85,2.12], h: 2752, n: "Mt Nyiru" }],
+   role: "A salt-and-lava desert where Gabra camel herders depend on a few wells (Kalacha, Maikona, North Horr). Forested Mt Marsabit and the Kulal and Nyiru massifs are the only reliable water and pasture, so wells like Turbi become flashpoints between Borana and Gabra." },
+ { id: "chyulu", type: "Hills", name: "Chyulu, Taita & Ngong Hills", g: ["kamba", "maasai", "kikuyu"],
+   parts: [{ k: "range", pts: [[37.75,-2.4],[37.85,-2.65],[37.95,-2.85]] }, { k: "area", fill: "forest", at: [38.35,-3.4], rx: .12, ry: .1 },
+           { k: "range", pts: [[36.63,-1.33],[36.66,-1.45]] }, { k: "peak", at: [37.36,-3.07], h: 5895, n: "Kilimanjaro" }],
+   role: "The Ngong Hills mark where Kikuyu land purchases met Maasai country south of Nairobi. The volcanic Chyulu Hills edged Kamba expansion toward Tsavo, and the Taita Hills are a farming island in the dry plains." },
+];
+// Map labels for features whose rivers or peaks are not already labelled: [text, lon, lat, rotation].
+const NLABELS = {
+  rift: ["Great Rift Valley", 36.12, 1.25, -78], mau: ["Mau Forest", 35.72, -0.97, 0], aberdare: ["Aberdares", 36.53, -0.62, -82],
+  kerio: ["Kerio Valley", 35.78, 1.35, -72], suguta: ["Suguta Valley", 36.35, 2.32, 0], mara: ["Loita Hills", 35.6, -1.85, 0],
+  chalbi: ["Chalbi Desert", 37.35, 3.32, 0], chyulu: ["Chyulu Hills", 37.6, -2.6, -60],
+};
+const NTYPES = {
+  river: "Rivers", esc: "Escarpments", range: "Hills & ranges", peak: "Peaks", forest: "Forest", desert: "Desert & dry valley", rift: "Rift Valley floor",
+};
 const STATUS = {
   resolved:  { label: "Settled, largely calm", c: "var(--ok)", dash: "" },
   managed:   { label: "Settled, grievances remain", c: "var(--warn)", dash: "7 4" },
@@ -520,7 +614,7 @@ const STATUS = {
 const earthLink = ([lon, lat], range) => `https://earth.google.com/web/@${lat},${lon},0a,${range}d,35y,0h,0t,0r`;
 const mapsLink = ([lon, lat], zoom) => `https://www.google.com/maps/@?api=1&map_action=map&center=${lat},${lon}&zoom=${zoom}&basemap=satellite`;
 const bCenter = b => b.at || b.line[Math.floor(b.line.length / 2)];
-const TOWNS = [["Nairobi",36.82,-1.29],["Mombasa",39.67,-4.04],["Kisumu",34.76,-0.1],["Nakuru",36.07,-0.3],["Eldoret",35.27,0.51],["Garissa",39.65,-0.45],["Lodwar",35.6,3.12],["Lamu",40.9,-2.27],["Isiolo",37.58,0.35],["Narok",35.87,-1.08],["Kericho",35.28,-0.37],["Marsabit",37.99,2.33],["Kitale",35.0,1.02],["Wajir",40.06,1.75],["Mandera",41.85,3.94]];
+const TOWNS = [["Nairobi",36.82,-1.29],["Mombasa",39.67,-4.04],["Kisumu",34.76,-0.1],["Nakuru",36.07,-0.3],["Eldoret",35.27,0.51],["Garissa",39.65,-0.45],["Lodwar",35.6,3.12],["Lamu",40.9,-2.27],["Isiolo",37.58,0.35],["Narok",35.87,-1.08],["Kericho",35.28,-0.37],["Kitale",35.0,1.02],["Wajir",40.06,1.75],["Mandera",41.85,3.94]];
 
 const DIRS = ["East","North-east","North","North-west","West","South-west","South","South-east"];
 const GLYPH = { East:"→","North-east":"↗",North:"↑","North-west":"↖",West:"←","South-west":"↙",South:"↓","South-east":"↘",Inward:"»«",Outward:"«»" };
@@ -555,7 +649,8 @@ function drawBase() {
   el("rect", { x: -60, y: -60, width: 670, height: 750, fill: "var(--sea)" }, map);
   el("path", { d: GEO.near.map(ring).join(""), fill: "var(--land-out)", stroke: "var(--land-edge)", "stroke-width": ".6", opacity: ".9" }, map);
   el("path", { d: GEO.kenya.map(ring).join(""), fill: "var(--land)", stroke: "var(--ink-soft)", "stroke-width": "1.3", "stroke-linejoin": "round" }, map);
-  el("path", { d: GEO.rivers.map(r => "M" + r.map(p => P(p).map(v => v.toFixed(1)).join(",")).join("L")).join(""), fill: "none", stroke: "var(--river)", "stroke-width": ".9", "stroke-linecap": "round", "stroke-linejoin": "round" }, map);
+  drawTerrain(el("g", { id: "terrain" }, map));
+  el("path", { d: GEO.rivers.map(r => "M" + r.map(p => P(p).map(v => v.toFixed(1)).join(",")).join("L")).join(""), fill: "none", stroke: "var(--river)", "stroke-width": ".7", opacity: ".6", "stroke-linecap": "round", "stroke-linejoin": "round" }, map);
   el("path", { d: GEO.lakes.map(l => ring(l.r)).join(""), fill: "var(--water)", stroke: "var(--river)", "stroke-width": ".5" }, map);
   const eq = P([33.3, 0]);
   el("line", { x1: 0, y1: eq[1], x2: 546, y2: eq[1], stroke: "var(--land-edge)", "stroke-dasharray": "2 4", "stroke-width": ".7", opacity: ".7" }, map);
@@ -564,8 +659,6 @@ function drawBase() {
   txt("Indian Ocean", [40.9, -3.6], { "font-style": "italic" });
   txt("L. Victoria", [33.35, -1.3], { "font-style": "italic" });
   txt("L. Turkana", [36.75, 3.4], { "font-style": "italic" });
-  const mk = P([37.31, -0.15]);
-  el("path", { d: `M${mk[0]-5},${mk[1]+4} L${mk[0]},${mk[1]-5} L${mk[0]+5},${mk[1]+4} z`, fill: "var(--land-edge)" }, map);
   for (const [n, lon, lat] of TOWNS) {
     const [x, y] = P([lon, lat]);
     el("circle", { cx: x, cy: y, r: 1.8, fill: "var(--ink-soft)" }, map);
@@ -684,6 +777,96 @@ function renderChrome() {
   $("filter-note").textContent = state.focus ? `showing ${state.focus.size} of 16` : "showing all 16";
 }
 
+
+
+function drawTerrain(layer) {
+  const line = r => "M" + r.map(p => P(p).map(v => v.toFixed(1)).join(",")).join("L");
+  const fills = { forest: "url(#pat-forest)", desert: "url(#pat-desert)", swamp: "url(#pat-forest)" };
+  const defs = map.querySelector("defs");
+  const pf = el("pattern", { id: "pat-forest", width: 6, height: 6, patternUnits: "userSpaceOnUse" }, defs);
+  el("rect", { width: 6, height: 6, fill: "var(--forest)", opacity: ".28" }, pf);
+  el("circle", { cx: 3, cy: 3, r: 1.1, fill: "var(--forest)" }, pf);
+  const pd = el("pattern", { id: "pat-desert", width: 5, height: 5, patternUnits: "userSpaceOnUse" }, defs);
+  el("rect", { width: 5, height: 5, fill: "var(--desert)", opacity: ".55" }, pd);
+  el("circle", { cx: 1.5, cy: 1.5, r: .6, fill: "var(--relief)" }, pd);
+  // draw in z-order: areas, rivers, ridges and escarpments, peaks, labels
+  const order = ["rift", "area", "lake", "river", "range", "esc", "peak"];
+  const groups = {};
+  N.forEach(f => groups[f.id] = el("g", { "data-n": f.id }, layer));
+  for (const k of order) for (const f of N) for (const part of f.parts.filter(q => q.k === k)) {
+    const g = groups[f.id];
+    if (k === "rift") el("path", { d: line(part.pts) + "Z", fill: "var(--rift)", opacity: ".85" }, g);
+    else if (k === "area" || k === "lake") {
+      const [x, y] = P(part.at);
+      el("ellipse", { cx: x, cy: y, rx: part.rx * 60, ry: part.ry * 60, fill: k === "lake" ? "var(--water)" : fills[part.fill], stroke: k === "lake" ? "var(--riv)" : "none", "stroke-width": .5 }, g);
+    } else if (k === "river") {
+      el("path", { d: line(part.pts), fill: "none", stroke: "transparent", "stroke-width": 10 }, g);
+      el("path", { d: line(part.pts), fill: "none", stroke: "var(--riv)", "stroke-width": 1.5, "stroke-linecap": "round", "stroke-linejoin": "round" }, g);
+      const mid = P(part.pts[Math.floor(part.pts.length * 0.45)]);
+      if (part.n) { const t = el("text", { x: mid[0] + 4, y: mid[1] - 3, class: "rlabel" }, g); t.textContent = part.n; }
+    } else if (k === "range") {
+      el("path", { d: line(part.pts), fill: "none", stroke: "var(--relief)", "stroke-width": 3.2, "stroke-linecap": "round", "stroke-dasharray": "0.1 4.5", opacity: .9 }, g);
+      el("path", { d: line(part.pts), fill: "none", stroke: "var(--relief)", "stroke-width": 1, opacity: .7 }, g);
+    } else if (k === "esc") {
+      el("path", { d: line(part.pts), fill: "none", stroke: "var(--relief)", "stroke-width": 1.2 }, g);
+      el("path", { d: line(part.pts), fill: "none", stroke: "var(--relief)", "stroke-width": 5, "stroke-dasharray": "1 4", opacity: .75 }, g);
+    } else if (k === "peak") {
+      const [x, y] = P(part.at);
+      el("path", { d: `M${x - 5},${y + 4} L${x},${y - 5} L${x + 5},${y + 4} Z`, fill: "var(--relief)", stroke: "var(--halo)", "stroke-width": .8 }, g);
+      const left = part.n === "Mt Kenya";
+      const t = el("text", { x: left ? x - 6 : x + 6, y: y + (left ? -4 : 3), class: "plabel", "text-anchor": left ? "end" : "start" }, g);
+      t.textContent = `${part.n} ${part.h.toLocaleString("en")} m`;
+    }
+  }
+  for (const id in NLABELS) {
+    const [text, lon, lat, rot] = NLABELS[id], [x, y] = P([lon, lat]);
+    const t = el("text", { x, y, class: "tlabel", "text-anchor": "middle", transform: rot ? `rotate(${rot} ${x} ${y})` : "" }, groups[id]);
+    t.textContent = text;
+  }
+}
+
+function buildTerrain() {
+  $("terrain-key").innerHTML = [
+    `<span><span class="sw" style="border-color:var(--riv)"></span>River</span>`,
+    `<span><span class="sw" style="border-color:var(--relief);border-top-style:dotted;border-top-width:5px"></span>Escarpment</span>`,
+    `<span><span class="sw" style="border-color:var(--relief);border-top-style:dotted"></span>Hills &amp; ranges</span>`,
+    `<span>▲ Peak</span>`,
+    `<span><span class="sw" style="border-color:var(--forest);border-top-width:8px"></span>Forest</span>`,
+    `<span><span class="sw" style="border-color:var(--desert);border-top-width:8px"></span>Desert</span>`,
+    `<span><span class="sw" style="border-color:var(--rift);border-top-width:8px"></span>Rift Valley floor</span>`].join("");
+  $("ncards").innerHTML = N.map(f => {
+    const c = f.parts[0].at || f.parts[0].pts[Math.floor(f.parts[0].pts.length / 2)];
+    return `<article class="bcard ncard" id="n-${f.id}">
+      <span class="ntype">${f.type}</span>
+      <h3>${f.name}</h3>
+      <div class="row">${f.g.map(k => `<span class="gchip" style="--c:${G[k].c}"><i></i>${G[k].name}</span>`).join("")}</div>
+      <p>${f.role}</p>
+      <div class="links"><a href="${earthLink(c, f.id === "rift" ? 400000 : 90000)}" target="_blank" rel="noopener">View in Google Earth ↗</a><a href="#" data-shown="${f.id}">Show on map</a></div>
+    </article>`;
+  }).join("");
+  $("ncards").addEventListener("click", e => {
+    const a = e.target.closest("[data-shown]");
+    if (!a) return;
+    e.preventDefault();
+    showTerrain(a.dataset.shown, false);
+    document.querySelector(".plate").scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+  $("toggle-terrain").addEventListener("click", () => {
+    const on = $("toggle-terrain").getAttribute("aria-pressed") !== "true";
+    $("toggle-terrain").setAttribute("aria-pressed", String(on));
+    map.querySelector("#terrain").style.display = on ? "" : "none";
+  });
+}
+
+function showTerrain(id, scrollToCard) {
+  const layer = map.querySelector("#terrain");
+  const was = layer.querySelector(`[data-n="${id}"]`).classList.contains("hl");
+  layer.querySelectorAll("[data-n]").forEach(g => g.classList.toggle("hl", !was && g.dataset.n === id));
+  layer.classList.toggle("dimmed", !was);
+  layer.style.display = ""; $("toggle-terrain").setAttribute("aria-pressed", "true");
+  document.querySelectorAll(".ncard").forEach(c => c.classList.toggle("sel", !was && c.id === "n-" + id));
+  if (scrollToCard && !was) $("n-" + id).scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
 
 function renderBounds() {
   const layer = map.querySelector("#bounds");
@@ -827,6 +1010,8 @@ function buildControls() {
   map.addEventListener("click", e => {
     const bt = e.target.closest("[data-b]");
     if (bt) { showBound(bt.dataset.b, true); return; }
+    const nt = e.target.closest("[data-n]");
+    if (nt && !e.target.closest("[data-k]")) { showTerrain(nt.dataset.n, true); return; }
     if (state.bsel) { state.bsel = null; renderBounds(); markBoundCards(); }
     const t = e.target.closest("[data-k]");
     if (t) select(+t.dataset.k, true);
@@ -897,6 +1082,7 @@ function stop() {
 
 drawBase();
 buildBounds();
+buildTerrain();
 updateEarthLink();
 buildControls();
 buildMatrix();

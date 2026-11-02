@@ -24,3 +24,7 @@ All data lives in the `G` (communities) and `D` (decades) objects in the page sc
 The **Conflict borders** layer marks 15 borders and hotspots where communities have clashed (for example Sotik–Borabu, Wajir, Mt Elgon, the Maasai Mau, Tana Delta and Turkana–Pokot). Each has a card listing the communities affected, what happened, how it was settled, and whether it is settled and calm, settled with grievances remaining, or still recurring. Each card links to the place in Google Earth and in Google Maps satellite view, and the map toolbar opens the current view in Google Earth.
 
 Google Earth imagery cannot be embedded in the page itself, so it opens in a new tab. Country borders, lakes and rivers come from Natural Earth (public domain).
+
+## Rivers, valleys and mountains
+
+The **Terrain** layer adds the natural barriers and corridors that shaped movement: the Rift Valley floor and escarpments, the Mau, Aberdares, Mt Kenya, Mt Elgon, Cherangani Hills, Kerio and Suguta valleys, Chalbi Desert, the Chyulu, Taita, Ngong and Loita hills, and the Tana, Athi–Galana, Ewaso Ng'iro, Turkwel, Kerio, Mara, Nzoia, Yala, Sondu and Nyando rivers. A card for each explains which communities it separated or connected, with a Google Earth link. Positions are approximate except the Tana, which is traced from Natural Earth.
