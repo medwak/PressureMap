@@ -18,3 +18,9 @@ All data lives in the `G` (communities) and `D` (decades) objects in the page sc
 - **All Kenya / Rift & West** zooms the map into the crowded western highlands.
 - Tap an arrow, its number, or a reason card to highlight that one movement.
 - On phones, swipe the map sideways to change decade.
+
+## Conflict boundaries
+
+The **Conflict borders** layer marks 15 borders and hotspots where communities have clashed (for example Sotik–Borabu, Wajir, Mt Elgon, the Maasai Mau, Tana Delta and Turkana–Pokot). Each has a card listing the communities affected, what happened, how it was settled, and whether it is settled and calm, settled with grievances remaining, or still recurring. Each card links to the place in Google Earth and in Google Maps satellite view, and the map toolbar opens the current view in Google Earth.
+
+Google Earth imagery cannot be embedded in the page itself, so it opens in a new tab. Country borders, lakes and rivers come from Natural Earth (public domain).
