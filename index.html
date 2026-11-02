@@ -3,7 +3,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: survey-sheet atlas. Map plate on the left, decade notes on the right, decade-by-community matrix below. */
+/* Layout: survey-sheet atlas. Sticky timeline bar on top, map plate left, decade notes right, matrix below. */
 :root {
   --paper: #eef0ea;
   --plate: #f8f9f5;
@@ -14,7 +14,9 @@
   --ink-soft: #5a6357;
   --rule: #cdd2c4;
   --accent: #8a3b12;
+  --on-accent: #ffffff;
   --halo: #f8f9f5;
+  --shadow: 0 1px 2px rgb(31 38 32 / .08), 0 4px 14px rgb(31 38 32 / .06);
   --display: "Zilla Slab", Rockwell, "Roboto Slab", Georgia, serif;
   --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -23,116 +25,190 @@
   :root:not([data-theme="light"]) {
     --paper: #141814; --plate: #1b201b; --land: #283026; --land-edge: #6f7a68;
     --water: #23414c; --ink: #e6eadf; --ink-soft: #a3ad9d; --rule: #343c32;
-    --accent: #f0a46a; --halo: #1b201b; color-scheme: dark;
+    --accent: #f0a46a; --on-accent: #1b201b; --halo: #1b201b;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 4px 14px rgb(0 0 0 / .3); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --paper: #141814; --plate: #1b201b; --land: #283026; --land-edge: #6f7a68;
   --water: #23414c; --ink: #e6eadf; --ink-soft: #a3ad9d; --rule: #343c32;
-  --accent: #f0a46a; --halo: #1b201b; color-scheme: dark;
+  --accent: #f0a46a; --on-accent: #1b201b; --halo: #1b201b;
+  --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 4px 14px rgb(0 0 0 / .3); color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
   background: var(--paper); color: var(--ink); font: 400 15px/1.5 var(--body);
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 24px 48px;
+  padding-block: 20px 48px;
 }
-.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 28px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 22px; }
 h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.15; }
 h1 { font-size: clamp(28px, 4.2vw, 44px); font-weight: 700; }
 h2 { font-size: 22px; font-weight: 700; }
 .eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
 header { display: grid; gap: 10px; }
 header p { margin: 0; max-width: 70ch; color: var(--ink-soft); }
+button { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.controls { display: grid; gap: 12px; }
-.decades { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.decades button, .play {
-  font: 500 13px/1 var(--mono); padding: 9px 11px; border-radius: 4px; cursor: pointer;
-  border: 1px solid var(--rule); background: var(--plate); color: var(--ink);
-  font-variant-numeric: tabular-nums;
+/* Sticky timeline */
+.timeline {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  padding: 10px max(16px, env(safe-area-inset-left, 0px));
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--rule);
 }
-.decades button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.play { border-color: var(--accent); color: var(--accent); min-width: 84px; }
-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tl-inner { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 16px; align-items: center; }
+.transport { display: flex; gap: 6px; align-items: center; }
+.ibtn {
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--rule); background: var(--plate);
+  display: grid; place-items: center; cursor: pointer; font-size: 24px; line-height: 1; touch-action: manipulation;
+}
+.ibtn.play { width: 48px; height: 48px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-size: 17px; }
+.ibtn:active { transform: scale(.95); }
+.now { font: 700 26px/1 var(--display); min-width: 3.4em; padding-left: 6px; font-variant-numeric: tabular-nums; }
+.track { position: relative; min-width: 0; padding-top: 2px; }
+.track input[type=range] { width: 100%; margin: 0; accent-color: var(--accent); height: 28px; cursor: pointer; touch-action: pan-y; }
+.ticks { display: flex; justify-content: space-between; font: 500 11px/1 var(--mono); color: var(--ink-soft); padding-inline: 4px; }
+.ticks button { background: none; border: 0; padding: 4px 0; cursor: pointer; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+.ticks button[aria-current="true"] { color: var(--accent); font-weight: 700; }
+@media (max-width: 640px) {
+  .tl-inner { grid-template-columns: minmax(0, 1fr); }
+  .transport { justify-content: space-between; }
+  .ticks button:nth-child(even) { visibility: hidden; }
+}
 
-.legend { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Community filter */
+details.legend-box { background: var(--plate); border: 1px solid var(--rule); border-radius: 8px; }
+details.legend-box summary { cursor: pointer; padding: 10px 14px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 10px; }
+details.legend-box summary::-webkit-details-marker { display: none; }
+details.legend-box summary::after { content: "Show"; font: 500 12px/1.6 var(--mono); color: var(--accent); }
+details.legend-box[open] summary::after { content: "Hide"; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 12px; }
 .chip {
-  display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px 5px 7px; border-radius: 999px;
-  border: 1px solid var(--rule); background: var(--plate); color: var(--ink); cursor: pointer; font: 600 13px/1 var(--body);
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px 7px 8px; border-radius: 999px;
+  border: 1px solid var(--rule); background: var(--paper); cursor: pointer; font: 600 13px/1 var(--body);
 }
 .chip i { width: 11px; height: 11px; border-radius: 50%; display: block; }
 .chip[aria-pressed="false"] { opacity: .38; }
 .chip.reset { font-weight: 400; color: var(--ink-soft); }
+.filter-note { font: 400 12px var(--mono); color: var(--ink-soft); font-weight: 400; }
 
-.stage { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+/* Map + notes */
+.stage { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 22px; align-items: start; }
 @media (max-width: 880px) { .stage { grid-template-columns: minmax(0, 1fr); } }
-.plate { background: var(--plate); border: 1px solid var(--rule); border-radius: 6px; padding: 10px; min-width: 0; }
-.plate svg { width: 100%; height: auto; display: block; }
-.plate figcaption { font: 400 12px/1.4 var(--mono); color: var(--ink-soft); padding: 6px 4px 0; }
+.plate { margin: 0; background: var(--plate); border: 1px solid var(--rule); border-radius: 10px; padding: 8px; min-width: 0; box-shadow: var(--shadow); position: relative; }
+@media (min-width: 881px) { .plate { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 96px); } }
+.plate svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
+.plate svg [data-k] { cursor: pointer; }
+.map-tools { position: absolute; top: 12px; left: 12px; display: flex; gap: 4px; background: var(--plate); border: 1px solid var(--rule); border-radius: 999px; padding: 3px; }
+.map-tools button { border: 0; background: none; padding: 6px 11px; border-radius: 999px; cursor: pointer; font: 500 12px/1 var(--mono); }
+.map-tools button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.plate figcaption { font: 400 12px/1.4 var(--mono); color: var(--ink-soft); padding: 6px 6px 2px; }
+.swipe-hint { display: none; }
+@media (hover: none) { .swipe-hint { display: inline; } }
 
-.notes { display: grid; gap: 14px; min-width: 0; }
-.notes .period { font: 500 13px/1 var(--mono); color: var(--ink-soft); }
+.notes { display: grid; gap: 12px; min-width: 0; }
+.notes .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font: 500 13px/1 var(--mono); color: var(--ink-soft); }
+.count { padding: 4px 8px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
 .notes .summary { margin: 0; max-width: 62ch; }
-ol.moves { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.move { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 10px 12px; background: var(--plate); border: 1px solid var(--rule); border-radius: 6px; }
-.move.dim { opacity: .3; }
-.num { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font: 500 12px/1 var(--mono); color: #fff; }
+ol.moves { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.move {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 10px 12px; width: 100%; text-align: left;
+  background: var(--plate); border: 1px solid var(--rule); border-left: 4px solid var(--c); border-radius: 8px; cursor: pointer;
+  transition: opacity .2s, box-shadow .2s, transform .2s;
+}
+.move:hover { box-shadow: var(--shadow); }
+.move.dim { opacity: .35; }
+.move.sel { box-shadow: 0 0 0 2px var(--c), var(--shadow); }
+.num { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font: 500 12px/1 var(--mono); color: #fff; background: var(--c); }
 .move .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-.move .who { font-weight: 700; }
+.move .who { font-weight: 700; color: var(--c); }
 .tag { font: 500 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 4px 6px; border-radius: 3px; border: 1px solid var(--rule); color: var(--ink-soft); }
 .str { font: 400 12px/1 var(--mono); color: var(--ink-soft); }
 .move p { margin: 4px 0 0; font-size: 14px; }
+.empty { color: var(--ink-soft); font-style: italic; margin: 0; }
 
 section.matrix { display: grid; gap: 10px; }
 section.matrix > p { margin: 0; color: var(--ink-soft); max-width: 70ch; }
-.scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--plate); }
-table { border-collapse: collapse; font-size: 13px; width: 100%; min-width: 860px; }
+.scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--plate); }
+table { border-collapse: separate; border-spacing: 0; font-size: 13px; width: 100%; min-width: 860px; }
 th, td { border-bottom: 1px solid var(--rule); padding: 0; text-align: center; }
 thead th { font: 500 12px/1 var(--mono); padding: 10px 4px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 thead th.cur { color: var(--ink); background: color-mix(in srgb, var(--accent) 14%, transparent); }
-tbody th { text-align: left; padding: 6px 10px; white-space: nowrap; font-weight: 600; }
+tbody th, thead th:first-child { position: sticky; left: 0; background: var(--plate); z-index: 1; }
+tbody th { text-align: left; padding: 6px 10px; white-space: nowrap; font-weight: 600; border-right: 1px solid var(--rule); }
 tbody th i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
-td button { all: unset; display: block; width: 100%; padding: 7px 2px; cursor: pointer; font: 500 13px/1 var(--mono); color: var(--ink); }
+td button { all: unset; display: block; width: 100%; padding: 8px 2px; cursor: pointer; font: 500 13px/1 var(--mono); color: var(--ink); }
 td button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 td.cur { box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent); }
-
 .key { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 400 12px/1.4 var(--mono); color: var(--ink-soft); }
 
 section.about { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
 section.about div { min-width: 0; }
 section.about h3 { font-size: 17px; margin-bottom: 6px; }
-section.about p, section.about li { color: var(--ink-soft); font-size: 14px; max-width: 65ch; }
+section.about li { color: var(--ink-soft); font-size: 14px; max-width: 65ch; }
 section.about ul { padding-left: 18px; margin: 0; display: grid; gap: 4px; }
 
 svg text { font-family: var(--body); }
 .town { font: 400 9.5px var(--mono); fill: var(--ink-soft); }
 .core-label { font: 700 11.5px var(--body); paint-order: stroke; stroke: var(--halo); stroke-width: 3px; stroke-linejoin: round; }
-.badge-t { font: 500 9.5px var(--mono); fill: #fff; }
+.badge-t { font: 500 9.5px var(--mono); fill: #fff; pointer-events: none; }
+.watermark { font: 700 54px var(--display); fill: var(--ink); opacity: .09; }
 .mv { transition: opacity .25s; }
-@media (prefers-reduced-motion: reduce) { .mv { transition: none; } }
+.draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw .7s ease-out forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.pop { animation: pop .35s ease-out both; transform-box: fill-box; transform-origin: center; }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .mv, .move { transition: none; }
+  .draw { animation: none; stroke-dashoffset: 0; }
+  .pop { animation: none; }
+}
 </style>
 
 <div class="wrap">
   <header>
     <span class="eyebrow">Kenya · 1900 to present · by decade</span>
     <h1>Kenya Land Pressure Atlas</h1>
-    <p>Where Kenya's communities have pushed, been pushed, or been held in place, decade by decade since 1900. Each arrow summarises documented migration and settlement pressure for part of a community, with the main reason behind it. Inward rings mean pressure inside a home area (eviction back home, confinement, crowding); outward rings mean pressure in several directions at once.</p>
+    <p>Where Kenya's communities have pushed, been pushed, or been held in place, decade by decade since 1900. Arrows show the direction of pressure and its main reason. Inward rings mean pressure inside a home area (eviction back home, confinement, crowding); outward rings mean pressure in several directions at once.</p>
   </header>
 
-  <div class="controls">
-    <div class="decades" id="decades" role="group" aria-label="Choose a decade"></div>
-    <div class="legend" id="legend" role="group" aria-label="Filter by community"></div>
+  <div class="timeline" role="group" aria-label="Decade timeline">
+    <div class="tl-inner">
+      <div class="transport">
+        <button type="button" class="ibtn" id="prev" aria-label="Previous decade">‹</button>
+        <button type="button" class="ibtn play" id="play" aria-label="Play through the decades">▶</button>
+        <button type="button" class="ibtn" id="next" aria-label="Next decade">›</button>
+        <span class="now" id="now" aria-live="polite"></span>
+      </div>
+      <div class="track">
+        <input type="range" id="slider" min="0" max="12" step="1" value="0" aria-label="Decade">
+        <div class="ticks" id="ticks"></div>
+      </div>
+    </div>
   </div>
 
+  <details class="legend-box" id="legend-box">
+    <summary>Communities <span class="filter-note" id="filter-note">showing all 16</span></summary>
+    <div class="legend" id="legend" role="group" aria-label="Filter by community"></div>
+  </details>
+
   <div class="stage">
-    <figure class="plate" style="margin:0">
+    <figure class="plate">
       <svg id="map" viewBox="0 0 546 624" role="img" aria-label="Map of Kenya with pressure arrows for the selected decade"></svg>
-      <figcaption>Schematic map. Community positions mark approximate home areas around 1900; arrow length and width show direction and relative strength, not exact routes.</figcaption>
+      <div class="map-tools" role="group" aria-label="Map view">
+        <button type="button" id="view-all" aria-pressed="true">All Kenya</button>
+        <button type="button" id="view-west" aria-pressed="false">Rift &amp; West</button>
+      </div>
+      <figcaption>Schematic map. Tap an arrow or number to read its reason. <span class="swipe-hint">Swipe the map sideways to change decade.</span></figcaption>
     </figure>
-    <div class="notes" aria-live="polite">
-      <span class="period" id="period"></span>
+    <div class="notes">
+      <div class="meta"><span id="period"></span><span class="count" id="count"></span></div>
       <h2 id="title"></h2>
       <p class="summary" id="summary"></p>
       <ol class="moves" id="moves"></ol>
@@ -368,9 +444,12 @@ function el(tag, attrs, parent) {
   if (parent) parent.appendChild(n);
   return n;
 }
+const $ = id => document.getElementById(id);
+const label = d => d.d + "s";
+const VIEWS = { all: "0 0 546 624", west: "20 190 290 260" };
 
-const state = { i: 0, focus: null, timer: null };
-const map = document.getElementById("map");
+const state = { i: 0, focus: null, sel: null, timer: null, view: "all" };
+const map = $("map");
 
 function drawBase() {
   const defs = el("defs", {}, map);
@@ -381,24 +460,24 @@ function drawBase() {
   el("polygon", { points: pts(KENYA), fill: "var(--land)", stroke: "var(--land-edge)", "stroke-width": "1.2", "stroke-linejoin": "round" }, map);
   el("polygon", { points: pts(VICTORIA), fill: "var(--water)", opacity: ".9" }, map);
   el("polygon", { points: pts(TURKANA), fill: "var(--water)" }, map);
-  // Indian Ocean label and equator
   const eq = P([33.3, 0]);
   el("line", { x1: 0, y1: eq[1], x2: 546, y2: eq[1], stroke: "var(--land-edge)", "stroke-dasharray": "2 4", "stroke-width": ".7", opacity: ".7" }, map);
-  const t = el("text", { x: 4, y: eq[1] - 4, class: "town" }, map); t.textContent = "Equator";
-  const o = el("text", { x: P([40.9,-3.6])[0], y: P([40.9,-3.6])[1], class: "town", "font-style": "italic" }, map); o.textContent = "Indian Ocean";
-  const lv = el("text", { x: P([33.35,-1.3])[0], y: P([33.35,-1.3])[1], class: "town", "font-style": "italic" }, map); lv.textContent = "L. Victoria";
-  const lt = el("text", { x: P([36.75,3.4])[0], y: P([36.75,3.4])[1], class: "town", "font-style": "italic" }, map); lt.textContent = "L. Turkana";
-  const mk = P([37.31,-0.15]);
+  const txt = (s, at, extra = {}) => { const t = el("text", { x: P(at)[0], y: P(at)[1], class: "town", ...extra }, map); t.textContent = s; };
+  txt("Equator", [33.37, 0.07]);
+  txt("Indian Ocean", [40.9, -3.6], { "font-style": "italic" });
+  txt("L. Victoria", [33.35, -1.3], { "font-style": "italic" });
+  txt("L. Turkana", [36.75, 3.4], { "font-style": "italic" });
+  const mk = P([37.31, -0.15]);
   el("path", { d: `M${mk[0]-5},${mk[1]+4} L${mk[0]},${mk[1]-5} L${mk[0]+5},${mk[1]+4} z`, fill: "var(--land-edge)" }, map);
   for (const [n, lon, lat] of TOWNS) {
     const [x, y] = P([lon, lat]);
     el("circle", { cx: x, cy: y, r: 1.8, fill: "var(--ink-soft)" }, map);
     const tx = el("text", { x: x + 4, y: y + 3, class: "town" }, map); tx.textContent = n;
   }
-  // compass
-  const c = el("g", { transform: "translate(510,40)" }, map);
+  const c = el("g", { transform: "translate(510,70)" }, map);
   el("path", { d: "M0,-18 L5,0 L0,-4 L-5,0 z", fill: "var(--ink)" }, c);
   const nt = el("text", { x: 0, y: -22, "text-anchor": "middle", class: "town" }, c); nt.textContent = "N";
+  el("text", { id: "wm", x: 18, y: 610, class: "watermark" }, map);
   el("g", { id: "cores" }, map);
   el("g", { id: "arrows" }, map);
   el("g", { id: "badges" }, map);
@@ -406,24 +485,30 @@ function drawBase() {
 
 function curve(a, b) {
   const [x0, y0] = P(a), [x2, y2] = P(b);
-  const mx = (x0 + x2) / 2, my = (y0 + y2) / 2, dx = x2 - x0, dy = y2 - y0;
-  const len = Math.hypot(dx, dy) || 1, k = 0.16;
+  const mx = (x0 + x2) / 2, my = (y0 + y2) / 2, dx = x2 - x0, dy = y2 - y0, k = 0.16;
   const cx = mx - dy * k, cy = my + dx * k;
   return { d: `M${x0.toFixed(1)},${y0.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`,
            mid: [0.25 * x0 + 0.5 * cx + 0.25 * x2, 0.25 * y0 + 0.5 * cy + 0.25 * y2] };
 }
 
 function visible(g) { return !state.focus || state.focus.has(g); }
+function lit(m, idx) {
+  if (state.sel !== null) return state.sel === idx;
+  return visible(m.g);
+}
 
-function render() {
+// Draws the map layer. `animate` is true only when the decade changes.
+function renderMap(animate) {
   const dec = D[state.i];
   const cores = map.querySelector("#cores"), arrows = map.querySelector("#arrows"), badges = map.querySelector("#badges");
   cores.replaceChildren(); arrows.replaceChildren(); badges.replaceChildren();
+  map.querySelector("#wm").textContent = label(dec);
   const active = new Set(dec.m.map(m => m.g));
+  const selG = state.sel !== null ? dec.m[state.sel].g : null;
 
   for (const k in G) {
     const [x, y] = P(G[k].at);
-    const on = active.has(k), vis = visible(k);
+    const on = active.has(k), vis = selG ? k === selG : visible(k);
     const g = el("g", { class: "mv", opacity: vis ? (on ? 1 : 0.45) : 0.12 }, cores);
     el("circle", { cx: x, cy: y, r: on ? 9 : 6, fill: G[k].c, "fill-opacity": on ? .3 : .18, stroke: G[k].c, "stroke-width": 1.4 }, g);
     const ring = dec.m.find(m => m.g === k && m.t);
@@ -433,80 +518,118 @@ function render() {
   }
 
   dec.m.forEach((m, idx) => {
-    const col = G[m.g].c, w = 1.5 + m.s * 1.4, vis = visible(m.g);
-    const grp = el("g", { class: "mv", opacity: vis ? 1 : 0.1 }, arrows);
+    const col = G[m.g].c, w = 1.5 + m.s * 1.4, on = lit(m, idx);
+    const grp = el("g", { class: "mv", opacity: on ? 1 : 0.1, "data-k": idx }, arrows);
+    const delay = animate ? `animation-delay:${idx * 90}ms` : "";
+    const cls = animate ? "draw" : "";
     let badgeAt;
+    const stroke = d => {
+      el("path", { d, fill: "none", stroke: "transparent", "stroke-width": 16 }, grp); // wide tap target
+      el("path", { d, fill: "none", stroke: "var(--halo)", "stroke-width": w + 3, "stroke-linecap": "round", opacity: .85, pathLength: 1, class: cls, style: delay }, grp);
+      el("path", { d, fill: "none", stroke: col, "stroke-width": w, "stroke-linecap": "round", "marker-end": `url(#ah-${m.g})`, pathLength: 1, class: cls, style: delay }, grp);
+    };
     if (m.to) {
       const cv = curve(m.from || G[m.g].at, m.to);
-      el("path", { d: cv.d, fill: "none", stroke: "var(--halo)", "stroke-width": w + 3, "stroke-linecap": "round", opacity: .85 }, grp);
-      el("path", { d: cv.d, fill: "none", stroke: col, "stroke-width": w, "stroke-linecap": "round", "marker-end": `url(#ah-${m.g})` }, grp);
+      stroke(cv.d);
       badgeAt = cv.mid;
     } else {
       const [x, y] = P(G[m.g].at), inward = m.t === "in";
       const r1 = 13, r2 = 26 + m.s * 3;
+      el("circle", { cx: x, cy: y, r: (r1 + r2) / 2, fill: "none", stroke: col, "stroke-width": 1, "stroke-dasharray": "3 3", opacity: .7 }, grp);
       for (const ang of [45, 135, 225, 315]) {
         const rad = ang * Math.PI / 180, cs = Math.cos(rad), sn = Math.sin(rad);
         const a = inward ? r2 : r1, b = inward ? r1 : r2;
-        const d = `M${(x + cs * a).toFixed(1)},${(y + sn * a).toFixed(1)} L${(x + cs * b).toFixed(1)},${(y + sn * b).toFixed(1)}`;
-        el("path", { d, stroke: "var(--halo)", "stroke-width": w + 3, "stroke-linecap": "round", opacity: .85 }, grp);
-        el("path", { d, stroke: col, "stroke-width": w, "stroke-linecap": "round", "marker-end": `url(#ah-${m.g})` }, grp);
+        stroke(`M${(x + cs * a).toFixed(1)},${(y + sn * a).toFixed(1)} L${(x + cs * b).toFixed(1)},${(y + sn * b).toFixed(1)}`);
       }
-      el("circle", { cx: x, cy: y, r: (r1 + r2) / 2, fill: "none", stroke: col, "stroke-width": 1, "stroke-dasharray": "3 3", opacity: .7 }, grp);
       badgeAt = [x + r2 * 0.95, y - r2 * 0.6];
     }
-    const b = el("g", { class: "mv", opacity: vis ? 1 : 0.1 }, badges);
-    el("circle", { cx: badgeAt[0], cy: badgeAt[1], r: 7.5, fill: col, stroke: "var(--halo)", "stroke-width": 1.5 }, b);
-    const bt = el("text", { x: badgeAt[0], y: badgeAt[1] + 3.3, "text-anchor": "middle", class: "badge-t" }, b);
+    const b = el("g", { class: "mv", opacity: on ? 1 : 0.1, "data-k": idx }, badges);
+    const inner = el("g", { class: animate ? "pop" : "", style: animate ? `animation-delay:${idx * 90 + 300}ms` : "" }, b);
+    el("circle", { cx: badgeAt[0], cy: badgeAt[1], r: 12, fill: "transparent" }, inner);
+    el("circle", { cx: badgeAt[0], cy: badgeAt[1], r: state.sel === idx ? 9.5 : 7.5, fill: col, stroke: "var(--halo)", "stroke-width": 1.5 }, inner);
+    const bt = el("text", { x: badgeAt[0], y: badgeAt[1] + 3.3, "text-anchor": "middle", class: "badge-t" }, inner);
     bt.textContent = idx + 1;
   });
+}
 
-  document.getElementById("period").textContent = `${dec.d}–${dec.d === 2020 ? "present" : dec.d + 9}`;
-  document.getElementById("title").textContent = dec.title;
-  document.getElementById("summary").textContent = dec.sum;
-  const list = document.getElementById("moves");
+function renderNotes() {
+  const dec = D[state.i];
+  $("period").textContent = `${dec.d}–${dec.d === 2020 ? "present" : dec.d + 9}`;
+  $("count").textContent = `${dec.m.length} movements`;
+  $("title").textContent = dec.title;
+  $("summary").textContent = dec.sum;
+  const list = $("moves");
   list.replaceChildren();
   dec.m.forEach((m, idx) => {
     const li = document.createElement("li");
-    li.className = "move" + (visible(m.g) ? "" : " dim");
     const dir = dirOf(m);
-    li.innerHTML = `<span class="num" style="background:${G[m.g].c}">${idx + 1}</span>
-      <div><div class="head"><span class="who" style="color:${G[m.g].c}">${G[m.g].name}</span>
+    li.innerHTML = `<button type="button" class="move${lit(m, idx) ? "" : " dim"}${state.sel === idx ? " sel" : ""}" style="--c:${G[m.g].c}" data-k="${idx}" aria-pressed="${state.sel === idx}">
+      <span class="num">${idx + 1}</span>
+      <span><span class="head"><span class="who">${G[m.g].name}</span>
       <span class="tag">${GLYPH[dir]} ${dir}</span>
-      <span class="str" title="Relative strength">${"●".repeat(m.s)}${"○".repeat(3 - m.s)}</span></div>
-      <p>${m.why}</p></div>`;
+      <span class="str" aria-label="Strength ${m.s} of 3">${"●".repeat(m.s)}${"○".repeat(3 - m.s)}</span></span>
+      <p>${m.why}</p></span></button>`;
     list.appendChild(li);
   });
+}
 
-  document.querySelectorAll("#decades button[data-i]").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.i === state.i)));
+function renderChrome() {
+  const dec = D[state.i];
+  $("now").textContent = label(dec);
+  $("slider").value = state.i;
+  $("slider").setAttribute("aria-valuetext", label(dec));
+  document.querySelectorAll("#ticks button").forEach(b => b.setAttribute("aria-current", String(+b.dataset.i === state.i)));
   document.querySelectorAll("#matrix [data-col]").forEach(c => c.classList.toggle("cur", +c.dataset.col === state.i));
   document.querySelectorAll("#legend .chip[data-g]").forEach(c => c.setAttribute("aria-pressed", String(visible(c.dataset.g))));
   document.querySelectorAll("#matrix tbody tr").forEach(r => r.style.opacity = visible(r.dataset.g) ? 1 : .35);
+  $("filter-note").textContent = state.focus ? `showing ${state.focus.size} of 16` : "showing all 16";
 }
 
+function render(animate) { renderMap(animate); renderNotes(); renderChrome(); }
+
 function setDecade(i) {
-  state.i = i;
-  try { history.replaceState(null, "", "#" + D[i].d); } catch (e) {}
-  render();
+  state.i = (i + D.length) % D.length;
+  state.sel = null;
+  try { history.replaceState(null, "", "#" + D[state.i].d); } catch (e) {}
+  render(true);
+}
+
+function select(idx, fromMap) {
+  state.sel = state.sel === idx ? null : idx;
+  render(false);
+  if (fromMap && state.sel !== null) {
+    const card = document.querySelector(`.move[data-k="${idx}"]`);
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+function setView(v) {
+  state.view = v;
+  map.setAttribute("viewBox", VIEWS[v]);
+  $("view-all").setAttribute("aria-pressed", String(v === "all"));
+  $("view-west").setAttribute("aria-pressed", String(v === "west"));
 }
 
 function buildControls() {
-  const dc = document.getElementById("decades");
+  const ticks = $("ticks");
   D.forEach((d, i) => {
     const b = document.createElement("button");
-    b.type = "button"; b.dataset.i = i; b.id = "dec-" + d.d;
-    b.textContent = d.d === 2020 ? "2020s" : d.d + "s";
+    b.type = "button"; b.dataset.i = i; b.textContent = d.d % 100 === 0 ? String(d.d) : "’" + String(d.d).slice(2);
+    b.setAttribute("aria-label", label(d));
     b.addEventListener("click", () => { stop(); setDecade(i); });
-    dc.appendChild(b);
+    ticks.appendChild(b);
   });
-  const play = document.createElement("button");
-  play.type = "button"; play.className = "play"; play.id = "play"; play.textContent = "▶ Play";
-  play.addEventListener("click", () => state.timer ? stop() : start());
-  dc.appendChild(play);
+  $("slider").addEventListener("input", e => { stop(); if (+e.target.value !== state.i) setDecade(+e.target.value); });
+  $("prev").addEventListener("click", () => { stop(); setDecade(state.i - 1); });
+  $("next").addEventListener("click", () => { stop(); setDecade(state.i + 1); });
+  $("play").addEventListener("click", () => state.timer ? stop() : start());
+  $("view-all").addEventListener("click", () => setView("all"));
+  $("view-west").addEventListener("click", () => setView("west"));
 
-  const lg = document.getElementById("legend");
+  const lg = $("legend");
   const all = document.createElement("button");
   all.type = "button"; all.className = "chip reset"; all.id = "show-all"; all.textContent = "Show all";
-  all.addEventListener("click", () => { state.focus = null; render(); });
+  all.addEventListener("click", () => { state.focus = null; state.sel = null; render(false); });
   lg.appendChild(all);
   for (const k in G) {
     const c = document.createElement("button");
@@ -516,26 +639,55 @@ function buildControls() {
       if (!state.focus) state.focus = new Set([k]);
       else if (state.focus.has(k)) { state.focus.delete(k); if (!state.focus.size) state.focus = null; }
       else state.focus.add(k);
-      render();
+      state.sel = null;
+      render(false);
     });
     lg.appendChild(c);
   }
+  if (matchMedia("(min-width: 700px)").matches) $("legend-box").open = true;
+
+  map.addEventListener("click", e => {
+    const t = e.target.closest("[data-k]");
+    if (t) select(+t.dataset.k, true);
+    else if (state.sel !== null) { state.sel = null; render(false); }
+  });
+  $("moves").addEventListener("click", e => {
+    const t = e.target.closest(".move");
+    if (t) select(+t.dataset.k, false);
+  });
+
+  // Horizontal swipe on the map changes decade.
+  let sx = null, sy = null;
+  map.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  map.addEventListener("touchend", e => {
+    if (sx === null) return;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    sx = null;
+    if (Math.abs(dx) > 50 && Math.abs(dy) < 40) { stop(); setDecade(state.i + (dx < 0 ? 1 : -1)); }
+  });
+
+  document.addEventListener("keydown", e => {
+    if (e.target.closest("input, textarea")) return;
+    if (e.key === "ArrowRight") { stop(); setDecade(state.i + 1); }
+    else if (e.key === "ArrowLeft") { stop(); setDecade(state.i - 1); }
+    else if (e.key === " " && !e.target.closest("button")) { e.preventDefault(); state.timer ? stop() : start(); }
+  });
 }
 
 function buildMatrix() {
-  const t = document.getElementById("matrix");
+  const t = $("matrix");
   let h = "<thead><tr><th scope='col' style='text-align:left;padding-left:10px'>Community</th>";
-  D.forEach((d, i) => h += `<th scope="col" data-col="${i}">${d.d === 2020 ? "2020s" : d.d + "s"}</th>`);
+  D.forEach((d, i) => h += `<th scope="col" data-col="${i}">${label(d)}</th>`);
   h += "</tr></thead><tbody>";
   for (const k in G) {
     h += `<tr data-g="${k}"><th scope="row"><i style="background:${G[k].c}"></i>${G[k].name}</th>`;
     D.forEach((d, i) => {
       const ms = d.m.filter(m => m.g === k);
-      if (!ms.length) { h += `<td data-col="${i}"><button type="button" data-i="${i}" style="color:var(--ink-soft)" aria-label="${G[k].name}, ${d.d}s: no major shift">·</button></td>`; return; }
+      if (!ms.length) { h += `<td data-col="${i}"><button type="button" data-i="${i}" style="color:var(--ink-soft)" aria-label="${G[k].name}, ${label(d)}: no major shift">·</button></td>`; return; }
       const top = ms.reduce((a, b) => b.s > a.s ? b : a);
       const dir = dirOf(top), pct = [0, 22, 40, 62][top.s];
       const extra = ms.length > 1 ? ` <sup>+${ms.length - 1}</sup>` : "";
-      h += `<td data-col="${i}" style="background:color-mix(in srgb, ${G[k].c} ${pct}%, transparent)"><button type="button" data-i="${i}" title="${dir}: ${top.why.replace(/"/g, "&quot;")}" aria-label="${G[k].name}, ${d.d}s: ${dir}">${GLYPH[dir]}${extra}</button></td>`;
+      h += `<td data-col="${i}" style="background:color-mix(in srgb, ${G[k].c} ${pct}%, transparent)"><button type="button" data-i="${i}" title="${dir}: ${top.why.replace(/"/g, "&quot;")}" aria-label="${G[k].name}, ${label(d)}: ${dir}">${GLYPH[dir]}${extra}</button></td>`;
     });
     h += "</tr>";
   }
@@ -549,13 +701,17 @@ function buildMatrix() {
 }
 
 function start() {
-  document.getElementById("play").textContent = "❚❚ Pause";
-  state.timer = setInterval(() => setDecade((state.i + 1) % D.length), 2600);
+  $("play").textContent = "❚❚"; $("play").setAttribute("aria-label", "Pause");
+  if (state.i === D.length - 1) setDecade(0);
+  state.timer = setInterval(() => {
+    if (state.i === D.length - 1) { stop(); return; }
+    setDecade(state.i + 1);
+  }, 3000);
 }
 function stop() {
   if (!state.timer) return;
   clearInterval(state.timer); state.timer = null;
-  document.getElementById("play").textContent = "▶ Play";
+  $("play").textContent = "▶"; $("play").setAttribute("aria-label", "Play through the decades");
 }
 
 drawBase();
